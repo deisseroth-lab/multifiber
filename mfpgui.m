@@ -92,6 +92,7 @@ rate = str2double(get(handles.rate_txt, 'String'));
 fs = rate * 10;
 devices = daq.getDevices();
 device = devices(1);
+handles.dev = device;
 
 s = daq.createSession('ni');
 s.Rate = fs;
@@ -358,7 +359,19 @@ function ref_pop_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns ref_pop contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from ref_pop
+f = handles.refCh.Frequency;
+i = handles.refCh.InitialDelay;
+d = handles.refCh.DutyCycle;
+delete(handles.refCh);
 
+handles.refCh = s.addCounterOutputChannel(handles.dev.ID, getCurrentPopupString(hObject), 'PulseGeneration');
+handles.refCh.Frequency = f;
+handles.refCh.InitialDelay = i;
+handles.refCh.DutyCycle = d;
+disp(['Signal LED should be connected to ' handles.refCh.Terminal]);
+
+% Update handles structure
+guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
 function ref_pop_CreateFcn(hObject, eventdata, handles)
@@ -381,7 +394,19 @@ function sig_pop_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns sig_pop contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from sig_pop
+f = handles.sigCh.Frequency;
+i = handles.sigCh.InitialDelay;
+d = handles.sigCh.DutyCycle;
+delete(handles.sigCh);
 
+handles.sigCh = s.addCounterOutputChannel(handles.dev.ID, getCurrentPopupString(hObject), 'PulseGeneration');
+handles.sigCh.Frequency = f;
+handles.sigCh.InitialDelay = i;
+handles.sigCh.DutyCycle = d;
+disp(['Signal LED should be connected to ' handles.sigCh.Terminal]);
+
+% Update handles structure
+guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
 function sig_pop_CreateFcn(hObject, eventdata, handles)
@@ -439,7 +464,19 @@ function camport_pop_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns camport_pop contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from camport_pop
+f = handles.camCh.Frequency;
+i = handles.camCh.InitialDelay;
+d = handles.camCh.DutyCycle;
+delete(handles.camCh);
 
+handles.camCh = s.addCounterOutputChannel(handles.dev.ID, getCurrentPopupString(hObject), 'PulseGeneration');
+handles.camCh.Frequency = f;
+handles.camCh.InitialDelay = i;
+handles.camCh.DutyCycle = d;
+disp(['Camera should be connected to ' handles.camCh.Terminal]);
+
+% Update handles structure
+guidata(hObject, handles);
 
 
 function cam_pop_Callback(hObject, eventdata, handles)
