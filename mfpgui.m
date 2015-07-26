@@ -22,7 +22,7 @@ function varargout = mfpgui(varargin)
 
 % Edit the above text to modify the response to help mfpgui
 
-% Last Modified by GUIDE v2.5 15-Jul-2015 22:44:05
+% Last Modified by GUIDE v2.5 26-Jul-2015 14:36:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -60,12 +60,12 @@ handles.settingsGroup = 'MFPGUI';
 % Defaults
 handles.crop_roi = false;
 handles.masks = false;
-handles.callback_path = false;
-handles.callback = @(x,y) false;
 handles.savepath = '.';
 handles.savefile = get(handles.save_txt, 'String');
+handles.callback_path = false;
+handles.callback = @(x,y) false;
 handles.calibColors = false;
-handles.calibImg = false;
+handles.calibImg.cdata = false;
 
 % Populate dropdowns
 imaqreset();
@@ -79,9 +79,9 @@ set(handles.cam_pop, 'String', options);
 
 % Recover settings from last time
 grp = handles.settingsGroup;
-set(handles.camport_pop, 'Value', getpref(grp, 'camport_pop', get(handles.camport_pop, 'Value')));
-set(handles.ref_pop, 'Value', getpref(grp, 'ref_pop', get(handles.ref_pop, 'Value')));
-set(handles.sig_pop, 'Value', getpref(grp, 'sig_pop', get(handles.sig_pop, 'Value')));
+set(handles.camport_pop, 'Value', getpref(grp, 'camport_pop', 1));
+set(handles.ref_pop, 'Value', getpref(grp, 'ref_pop', 2));
+set(handles.sig_pop, 'Value', getpref(grp, 'sig_pop', 3));
 set(handles.rate_txt, 'String', getpref(grp, 'rate_txt', get(handles.rate_txt, 'String')));
 set(handles.cam_pop, 'Value', getpref(grp, 'cam_pop', get(handles.cam_pop, 'Value')));
 set(handles.save_txt, 'String', getpref(grp, 'save_txt', get(handles.save_txt, 'String')));
@@ -137,9 +137,9 @@ handles.src = src;
 % Update rate
 rate_txt_Callback(handles.rate_txt, [], handles);
 % Update save file information
-[pathname, filename] = fileparts(get(handles.save_txt, 'String'));
+[pathname, filename, ext] = fileparts(get(handles.save_txt, 'String'));
 handles.savepath = pathname;
-handles.savefile = filename;
+handles.savefile = [filename ext];
 % Update callback file information
 [pathname, filename] = fileparts(get(handles.callback_txt, 'String'));
 addpath(pathname);
@@ -257,7 +257,7 @@ if state
     
     % Validate settings
     valid = true;
-    ports = {get(handles.camport_pop, 'Value'), get(handles.ref_pop, 'Value'), get(handles.sig_pop, 'Value')};
+    ports = [get(handles.camport_pop, 'Value'), get(handles.ref_pop, 'Value'), get(handles.sig_pop, 'Value')];
     if length(unique(ports)) < length(ports)
         valid = false;
         errordlg('Two or more devices (e.g. reference LED and camera) are set to the same DAQ port. Please correct this to proceed.', 'Config error');
@@ -282,6 +282,9 @@ if state
         else
             darkOffset = applyMasks(handles.masks, darkframe);
         end
+        
+        % Set up plotting
+        ha = tightSubplot(nMasks, 1, 0.1, 0.05, 0.05, handles.plot_pnl);
 
         triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
         start(vid);
@@ -309,12 +312,10 @@ if state
                 handles.callback(avgs, 'signal');
                 t = (max(1, j-framesback/2):j) / rate * 2;
                 % Plotting
-                axes(handles.plot_ax);
-                ha = tightSubplot(nMasks, 1, 0.2, 1, 1);
                 for k = 1:nMasks
-                    plot(ha(k), t, sig(max(1, j-framesback/2):j, 'Color', handles.calibColors(k,:)));
+                    plot(ha(k), t, sig(max(1, j-framesback/2):j,k), 'Color', handles.calibColors(k,:));
                     if t(1) ~= t(end)
-                        xlim([t(1) t(end)]);
+                        xlim(ha(k), [t(1) t(end)]);
                     end
                 end
             end
@@ -336,7 +337,7 @@ if state
         sig = sig(1:j,:); ref = ref(1:j,:);
         save(sigFile, 'sig', '-v7.3');
         save(refFile, 'ref', '-v7.3');
-        if handles.calibImg
+        if any(handles.calibImg.cdata(:))
             imwrite(handles.calibImg.cdata, calibFile, 'JPEG');
         end
     end

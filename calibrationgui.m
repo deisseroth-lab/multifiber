@@ -57,8 +57,8 @@ handles.output = hObject;
 
 % Parameters
 radius_range = [10 50];
-handles.defaultRadius = 50;
-handles.maxFibers = 20;
+handles.defaultRadius = 75;
+handles.maxFibers = 14;
 
 % Initialization
 handles.ellipses = {};
@@ -81,7 +81,7 @@ if centers
     end
 else
     % No ellipses found. Place one in the middle.
-    r = 25;
+    r = handles.defaultRadius;
     h = imellipse(handles.img_ax, [handles.frameSize(1)/2 - r/2, handles.frameSize(2)/2 - r/2, r, r]);
     h.setColor(handles.cmap(1,:));
     handles.ellipses{1} = h;

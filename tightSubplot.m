@@ -1,4 +1,4 @@
-function ha = tightSubplot(Nh, Nw, gap, marg_h, marg_w)
+function ha = tightSubplot(Nh, Nw, gap, marg_h, marg_w, parent)
 
 % tightSubplot creates "subplot" axes with adjustable gaps and margins
 %
@@ -11,7 +11,8 @@ function ha = tightSubplot(Nh, Nw, gap, marg_h, marg_w)
 %        marg_h  margins in height in normalized units (0...1)
 %                   or [lower upper] for different lower and upper margins 
 %        marg_w  margins in width in normalized units (0...1)
-%                   or [left right] for different left and right margins 
+%                   or [left right] for different left and right margins
+%        parent  forwarded to the Parent argument of axes()
 %
 %  out:  ha     array of handles of the axes objects
 %                   starting from upper left corner, going row-wise as in
@@ -28,6 +29,7 @@ function ha = tightSubplot(Nh, Nw, gap, marg_h, marg_w)
 if nargin<3; gap = .02; end
 if nargin<4 || isempty(marg_h); marg_h = .05; end
 if nargin<5; marg_w = .05; end
+if nargin<6; parent = gcf; end
 
 if numel(gap)==1; 
     gap = [gap gap];
@@ -54,7 +56,7 @@ for ih = 1:Nh
         ha(ii) = axes('Units','normalized', ...
             'Position',[px py axw axh], ...
             'XTickLabel','', ...
-            'YTickLabel','');
+            'YTickLabel','', 'Parent', parent);
         px = px+axw+gap(2);
     end
     py = py-axh-gap(1);
