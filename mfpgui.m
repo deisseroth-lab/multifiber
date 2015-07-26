@@ -255,80 +255,90 @@ if state
         set(control, 'Enable', 'off');
     end
     
-    nMasks = size(handles.masks, 3);
-    ref = zeros(1, nMasks); sig = zeros(1, nMasks);
-    i = 0;
-    rate = str2double(get(handles.rate_txt, 'String'));
-    lookback = handles.plotLookback;
-    framesback = lookback * rate;
-    vid = handles.vid;
-    s = handles.s;
-    
-    % Snap a quick dark frame
-    darkframe = getsnapshot(handles.vid);
-    
-    if ~any(handles.masks(:))
-        handles.masks = ones(handles.vid.VideoResolution);
-        darkOffset = mean(darkframe(:));
-    else
-        darkOffset = applyMasks(handles.masks, darkframe);
+    % Validate settings
+    valid = true;
+    ports = {get(handles.camport_pop, 'Value'), get(handles.ref_pop, 'Value'), get(handles.sig_pop, 'Value')};
+    if length(unique(ports)) < length(ports)
+        valid = false;
+        errordlg('Two or more devices (e.g. reference LED and camera) are set to the same DAQ port. Please correct this to proceed.', 'Config error');
     end
     
-    triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
-    start(vid);
-    s.startBackground();
-    handles.startTime = now();
-    
-    while get(hObject,'Value')
-        i = i + 1;      % frame number
-        j = ceil(i/2);  % sig/ref pair number
-        img = getdata(vid, 1, 'uint16');
-        avgs = applyMasks(handles.masks, img);
-        avgs = avgs - darkOffset;
-        
-        % Exponentially expanding matrix as per std::vector
-        if j > size(ref, 1) || j > size(sig, 1)
-            szr = size(ref); szs = size(sig);
-            ref = [ref; zeros(szr)]; sig = [sig; zeros(szs)];
+    if valid
+        nMasks = size(handles.masks, 3);
+        ref = zeros(1, nMasks); sig = zeros(1, nMasks);
+        i = 0;
+        rate = str2double(get(handles.rate_txt, 'String'));
+        lookback = handles.plotLookback;
+        framesback = lookback * rate;
+        vid = handles.vid;
+        s = handles.s;
+
+        % Snap a quick dark frame
+        darkframe = getsnapshot(handles.vid);
+
+        if ~any(handles.masks(:))
+            handles.masks = ones(handles.vid.VideoResolution);
+            darkOffset = mean(darkframe(:));
+        else
+            darkOffset = applyMasks(handles.masks, darkframe);
         end
-        
-        if mod(i, 2) == 1   % reference channel
-            ref(j,:) = avgs;
-            handles.callback(avgs, 'reference');
-        else                % signal channel
-            sig(j,:) = avgs;
-            handles.callback(avgs, 'signal');
-            t = (max(1, j-framesback/2):j) / rate * 2;
-            % Plotting
-            axes(handles.plot_ax);
-            ha = tightSubplot(nMasks, 1, 0.2, 1, 1);
-            for k = 1:nMasks
-                plot(ha(k), t, sig(max(1, j-framesback/2):j, 'Color', handles.calibColors(k,:)));
-                if t(1) ~= t(end)
-                    xlim([t(1) t(end)]);
+
+        triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
+        start(vid);
+        s.startBackground();
+        handles.startTime = now();
+
+        while get(hObject,'Value')
+            i = i + 1;      % frame number
+            j = ceil(i/2);  % sig/ref pair number
+            img = getdata(vid, 1, 'uint16');
+            avgs = applyMasks(handles.masks, img);
+            avgs = avgs - darkOffset;
+
+            % Exponentially expanding matrix as per std::vector
+            if j > size(ref, 1) || j > size(sig, 1)
+                szr = size(ref); szs = size(sig);
+                ref = [ref; zeros(szr)]; sig = [sig; zeros(szs)];
+            end
+
+            if mod(i, 2) == 1   % reference channel
+                ref(j,:) = avgs;
+                handles.callback(avgs, 'reference');
+            else                % signal channel
+                sig(j,:) = avgs;
+                handles.callback(avgs, 'signal');
+                t = (max(1, j-framesback/2):j) / rate * 2;
+                % Plotting
+                axes(handles.plot_ax);
+                ha = tightSubplot(nMasks, 1, 0.2, 1, 1);
+                for k = 1:nMasks
+                    plot(ha(k), t, sig(max(1, j-framesback/2):j, 'Color', handles.calibColors(k,:)));
+                    if t(1) ~= t(end)
+                        xlim([t(1) t(end)]);
+                    end
                 end
             end
+            set(handles.elapsed_txt, 'String', datestr(now() - handles.startTime(), 'HH:MM:SS'));
         end
-        set(handles.elapsed_txt, 'String', datestr(now() - handles.startTime(), 'HH:MM:SS'));
-    end
-    
-    stop(vid);
-    s.stop();
-    set(handles.elapsed_txt, 'String', datestr(0, 'HH:MM:SS'));
-    
-    [~, basename, ext] = fileparts(handles.savefile);
-    n = 0;
-    while exist(fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]), 'file') == 2
-        n = n + 1;
-    end
-    sigFile = fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]);
-    refFile = fullfile(handles.savepath, [basename sprintf('_%03d_reference', n) ext]);
-    calibFile = fullfile(handles.savepath, [basename sprintf('_%03d_calibration', n) '.jpg']);
-    sig = sig(1:j,:); ref = ref(1:j,:);
-    save(sigFile, 'sig', '-v7.3');
-    save(refFile, 'ref', '-v7.3');
-    if handles.calibImg
-        imwrite(handles.calibImg.cdata, calibFile, 'JPEG');
+
+        stop(vid);
+        s.stop();
+        set(handles.elapsed_txt, 'String', datestr(0, 'HH:MM:SS'));
+
+        [~, basename, ext] = fileparts(handles.savefile);
+        n = 0;
+        while exist(fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]), 'file') == 2
+            n = n + 1;
+        end
+        sigFile = fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]);
+        refFile = fullfile(handles.savepath, [basename sprintf('_%03d_reference', n) ext]);
+        calibFile = fullfile(handles.savepath, [basename sprintf('_%03d_calibration', n) '.jpg']);
+        sig = sig(1:j,:); ref = ref(1:j,:);
+        save(sigFile, 'sig', '-v7.3');
+        save(refFile, 'ref', '-v7.3');
+        if handles.calibImg
+            imwrite(handles.calibImg.cdata, calibFile, 'JPEG');
+        end
     end
     
     % Re-enable all controls
