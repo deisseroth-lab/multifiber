@@ -76,7 +76,6 @@ if centers
     % Initialize ellipses
     for i = 1:length(radii)
         h = imellipse(handles.img_ax, [centers(i,1:2) - radii(i), 2*radii(i), 2*radii(i)]);
-        h.Deletable = true;
         h.setColor(handles.cmap(i,:));
         handles.ellipses{i} = h;
     end
@@ -84,7 +83,6 @@ else
     % No ellipses found. Place one in the middle.
     r = 25;
     h = imellipse(handles.img_ax, [handles.frameSize(1)/2 - r/2, handles.frameSize(2)/2 - r/2, r, r]);
-    h.Deletable = true;
     h.setColor(handles.cmap(1,:));
     handles.ellipses{1} = h;
 end
@@ -117,7 +115,6 @@ nfibers = length(handles.ellipses);
 
 r = handles.defaultRadius;
 h = imellipse(handles.img_ax, [handles.frameSize(1)/2 - r/2, handles.frameSize(2)/2 - r/2, r, r]);
-h.Deletable = true;
 h.setColor(handles.cmap(nfibers + 1,:));
 handles.ellipses{nfibers + 1} = h;
 
