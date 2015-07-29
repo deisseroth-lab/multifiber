@@ -56,7 +56,7 @@ function calibrationgui_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 % Parameters
-radius_range = [10 50];
+radius_range = [20 50];
 handles.defaultRadius = 75;
 handles.maxFibers = 7;
 
@@ -64,6 +64,15 @@ handles.maxFibers = 7;
 handles.ellipses = {};
 handles.cmap = hsv(handles.maxFibers);
 handles.cmap = handles.cmap(randperm(handles.maxFibers),:);
+
+% Color order
+axes(handles.color_ax);
+set(gca,'Ydir','reverse');
+for c = 1:handles.maxFibers
+    y = c*50;
+    rectangle('Position', [0 y 50 50], 'FaceColor', handles.cmap(c,:));
+    text(25 - 8, y + 25 - 8, num2str(c), 'FontSize', 16)
+end
 
 % Process the input image
 handles.image = varargin{1};
