@@ -22,7 +22,7 @@ function varargout = mfpgui(varargin)
 
 % Edit the above text to modify the response to help mfpgui
 
-% Last Modified by GUIDE v2.5 26-Jul-2015 14:36:27
+% Last Modified by GUIDE v2.5 28-Jul-2015 19:07:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -312,14 +312,17 @@ if state
                 handles.callback(avgs, 'signal');
             end
             % Plotting
-            t = (max(1, j-framesback/2):j) / rate * 2;
-            for k = 1:nMasks
-                hold on;
-                plot(ha(k), t, sig(max(1, j-framesback/2):j,k), 'Color', handles.calibColors(k,:), 'LineStyle', '-');
-                plot(ha(k), t, ref(max(1, j-framesback/2):j,k), 'Color', handles.calibColors(k,:), 'LineStyle', '--');
-                hold off;
-                if t(1) ~= t(end)
-                    xlim(ha(k), [t(1) t(end)]);
+            jboth = 2 * floor(j / 2);
+            if jboth > 0
+                t = (max(1, j-framesback/2):jboth) / rate * 2;
+                for k = 1:nMasks
+                    cla(ha(k));
+                    hold(ha(k), 'on');
+                    plot(ha(k), t, sig(max(1, j-framesback/2):jboth,k), 'Color', handles.calibColors(k,:));
+                    plot(ha(k), t, ref(max(1, j-framesback/2):jboth,k), 'Color', handles.calibColors(k,:), 'LineStyle', '--');
+                    if t(1) ~= t(end)
+                        xlim(ha(k), [t(1) t(end)]);
+                    end
                 end
             end
             set(handles.elapsed_txt, 'String', datestr(now() - handles.startTime(), 'HH:MM:SS'));
@@ -533,21 +536,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in save_btn.
-function save_btn_Callback(hObject, eventdata, handles)
-% hObject    handle to save_btn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-[filename, pathname] = uiputfile('experiment.mat', 'Save experiment .mat file');
-handles.savepath = pathname;
-handles.savefile = filename;
-set(handles.save_txt, 'String', fullfile([pathname filename]));
-set(handles.acquire_tgl, 'Enable', 'on');
-
-% Update handles structure
-guidata(hObject, handles);
-
-
 % --- Executes during object creation, after setting all properties.
 function save_txt_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to save_txt (see GCBO)
@@ -559,16 +547,6 @@ function save_txt_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
-
-function callback_txt_Callback(hObject, eventdata, handles)
-% hObject    handle to callback_txt (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of callback_txt as text
-%        str2double(get(hObject,'String')) returns contents of callback_txt as a double
 
 
 % --- Executes during object creation, after setting all properties.
@@ -584,12 +562,26 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% --- Executes on button press in save_btn.
+function save_btn_Callback(hObject, eventdata, handles)
+% hObject    handle to save_btn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[filename, pathname] = uiputfile('experiment.mat', 'Save experiment .mat file');
+handles.savepath = pathname;
+handles.savefile = filename;
+set(handles.save_txt, 'String', fullfile([pathname filename]));
+
+% Update handles structure
+guidata(hObject, handles);
+
+
 % --- Executes on button press in callback_btn.
 function callback_btn_Callback(hObject, eventdata, handles)
 % hObject    handle to callback_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-[filename, pathname] = uiputfile('', 'Select a .m function file');
+[filename, pathname] = uigetfile('', 'Select a .m function file');
 if handles.callback_path
     rmpath(handles.callback_path);
 end
@@ -597,6 +589,7 @@ addpath(pathname);
 handles.callback_path = pathname;
 [~, basename, ext] = fileparts(filename);
 handles.callback = str2func(basename);
+set(handles.callback_txt, 'String', fullfile([pathname filename]));
 
 % Update handles structure
 guidata(hObject, handles);
@@ -620,3 +613,23 @@ setpref(grp, 'callback_txt', get(handles.callback_txt, 'String'));
 
 % Hint: delete(hObject) closes the figure
 delete(hObject);
+
+
+
+function callback_txt_Callback(hObject, eventdata, handles)
+% hObject    handle to callback_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of callback_txt as text
+%        str2double(get(hObject,'String')) returns contents of callback_txt as a double
+
+
+
+function save_txt_Callback(hObject, eventdata, handles)
+% hObject    handle to save_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of save_txt as text
+%        str2double(get(hObject,'String')) returns contents of save_txt as a double
