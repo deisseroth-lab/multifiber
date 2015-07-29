@@ -22,7 +22,7 @@ function varargout = mfpgui(varargin)
 
 % Edit the above text to modify the response to help mfpgui
 
-% Last Modified by GUIDE v2.5 28-Jul-2015 19:07:06
+% Last Modified by GUIDE v2.5 28-Jul-2015 19:36:41
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -633,3 +633,16 @@ function save_txt_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of save_txt as text
 %        str2double(get(hObject,'String')) returns contents of save_txt as a double
+
+
+% --- Executes on button press in callback_clear_btn.
+function callback_clear_btn_Callback(hObject, eventdata, handles)
+% hObject    handle to callback_clear_btn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.callback_path = false;
+handles.callback = @(x,y) false;
+set(handles.callback_txt, 'String', '<None>');
+
+% Update handles structure
+guidata(hObject, handles);
