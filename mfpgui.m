@@ -379,9 +379,9 @@ function ref_pop_Callback(hObject, eventdata, handles)
 f = handles.refCh.Frequency;
 i = handles.refCh.InitialDelay;
 d = handles.refCh.DutyCycle;
-delete(handles.refCh);
+handles.s.removeChannel(chIdx(handles.s, handles.refCh));
 
-handles.refCh = s.addCounterOutputChannel(handles.dev.ID, getCurrentPopupString(hObject), 'PulseGeneration');
+handles.refCh = handles.s.addCounterOutputChannel(handles.dev.ID, getCurrentPopupString(hObject), 'PulseGeneration');
 handles.refCh.Frequency = f;
 handles.refCh.InitialDelay = i;
 handles.refCh.DutyCycle = d;
@@ -414,9 +414,9 @@ function sig_pop_Callback(hObject, eventdata, handles)
 f = handles.sigCh.Frequency;
 i = handles.sigCh.InitialDelay;
 d = handles.sigCh.DutyCycle;
-delete(handles.sigCh);
+handles.s.removeChannel(chIdx(handles.s, handles.sigCh));
 
-handles.sigCh = s.addCounterOutputChannel(handles.dev.ID, getCurrentPopupString(hObject), 'PulseGeneration');
+handles.sigCh = handles.s.addCounterOutputChannel(handles.dev.ID, getCurrentPopupString(hObject), 'PulseGeneration');
 handles.sigCh.Frequency = f;
 handles.sigCh.InitialDelay = i;
 handles.sigCh.DutyCycle = d;
@@ -484,9 +484,9 @@ function camport_pop_Callback(hObject, eventdata, handles)
 f = handles.camCh.Frequency;
 i = handles.camCh.InitialDelay;
 d = handles.camCh.DutyCycle;
-delete(handles.camCh);
+handles.s.removeChannel(chIdx(handles.s, handles.camCh));
 
-handles.camCh = s.addCounterOutputChannel(handles.dev.ID, getCurrentPopupString(hObject), 'PulseGeneration');
+handles.camCh = handles.s.addCounterOutputChannel(handles.dev.ID, getCurrentPopupString(hObject), 'PulseGeneration');
 handles.camCh.Frequency = f;
 handles.camCh.InitialDelay = i;
 handles.camCh.DutyCycle = d;
