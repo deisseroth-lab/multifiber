@@ -58,7 +58,7 @@ handles.output = hObject;
 % Parameters
 radius_range = [10 50];
 handles.defaultRadius = 75;
-handles.maxFibers = 14;
+handles.maxFibers = 7;
 
 % Initialization
 handles.ellipses = {};
