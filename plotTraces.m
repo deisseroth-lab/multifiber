@@ -1,7 +1,7 @@
 % EDIT ONLY THIS %
-filename='m3_stim2000';
-load(strcat('E:\Dropbox\MATLAB\DEISSEROTH\mfp_fear\data\20150723\',filename,'_000_signal.mat'));
-load(strcat('E:\Dropbox\MATLAB\DEISSEROTH\mfp_fear\data\20150723\',filename,'_000_reference.mat'));
+filename='exp1_wakingupfromiso';
+load(strcat('E:\Dropbox\MATLAB\DEISSEROTH\mfp_fear\data\20150728_sam\',filename,'_000_signal.mat'));
+load(strcat('E:\Dropbox\MATLAB\DEISSEROTH\mfp_fear\data\20150728_sam\',filename,'_000_reference.mat'));
 
 sig_plot=sig(1:end-1,:);
 ref_plot=ref(1:end-1,:);
