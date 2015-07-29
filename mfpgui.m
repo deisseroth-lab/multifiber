@@ -595,6 +595,52 @@ set(handles.callback_txt, 'String', fullfile([pathname filename]));
 guidata(hObject, handles);
 
 
+function save_txt_Callback(hObject, eventdata, handles)
+% hObject    handle to save_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of save_txt as text
+%        str2double(get(hObject,'String')) returns contents of save_txt as a double
+[path, file, ext] = fileparts(get(hObject,'String'));
+handles.savepath = path;
+handles.savefile = [file ext];
+
+% Update handles structure
+guidata(hObject, handles);
+
+function callback_txt_Callback(hObject, eventdata, handles)
+% hObject    handle to callback_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of callback_txt as text
+%        str2double(get(hObject,'String')) returns contents of callback_txt as a double
+[path, file, ext] = fileparts(get(hObject, 'String'));
+if handles.callback_path
+    rmpath(handles.callback_path);
+end
+addpath(path);
+handles.callback_path = path;
+handles.callback = str2func(file);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes on button press in callback_clear_btn.
+function callback_clear_btn_Callback(hObject, eventdata, handles)
+% hObject    handle to callback_clear_btn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.callback_path = false;
+handles.callback = @(x,y) false;
+set(handles.callback_txt, 'String', '<None>');
+
+% Update handles structure
+guidata(hObject, handles);
+
+
 % --- Executes when user attempts to close mfpgui.
 function mfpgui_CloseRequestFcn(hObject, eventdata, handles)
 % hObject    handle to mfpgui (see GCBO)
@@ -613,36 +659,3 @@ setpref(grp, 'callback_txt', get(handles.callback_txt, 'String'));
 
 % Hint: delete(hObject) closes the figure
 delete(hObject);
-
-
-
-function callback_txt_Callback(hObject, eventdata, handles)
-% hObject    handle to callback_txt (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of callback_txt as text
-%        str2double(get(hObject,'String')) returns contents of callback_txt as a double
-
-
-
-function save_txt_Callback(hObject, eventdata, handles)
-% hObject    handle to save_txt (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of save_txt as text
-%        str2double(get(hObject,'String')) returns contents of save_txt as a double
-
-
-% --- Executes on button press in callback_clear_btn.
-function callback_clear_btn_Callback(hObject, eventdata, handles)
-% hObject    handle to callback_clear_btn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles.callback_path = false;
-handles.callback = @(x,y) false;
-set(handles.callback_txt, 'String', '<None>');
-
-% Update handles structure
-guidata(hObject, handles);
