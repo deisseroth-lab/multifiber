@@ -310,13 +310,16 @@ if state
             else                % signal channel
                 sig(j,:) = avgs;
                 handles.callback(avgs, 'signal');
-                t = (max(1, j-framesback/2):j) / rate * 2;
-                % Plotting
-                for k = 1:nMasks
-                    plot(ha(k), t, sig(max(1, j-framesback/2):j,k), 'Color', handles.calibColors(k,:));
-                    if t(1) ~= t(end)
-                        xlim(ha(k), [t(1) t(end)]);
-                    end
+            end
+            % Plotting
+            t = (max(1, j-framesback/2):j) / rate * 2;
+            for k = 1:nMasks
+                hold on;
+                plot(ha(k), t, sig(max(1, j-framesback/2):j,k), 'Color', handles.calibColors(k,:), 'LineStyle', '-');
+                plot(ha(k), t, ref(max(1, j-framesback/2):j,k), 'Color', handles.calibColors(k,:), 'LineStyle', '--');
+                hold off;
+                if t(1) ~= t(end)
+                    xlim(ha(k), [t(1) t(end)]);
                 end
             end
             set(handles.elapsed_txt, 'String', datestr(now() - handles.startTime(), 'HH:MM:SS'));
