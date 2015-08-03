@@ -348,6 +348,11 @@ if state
         end
     end
     
+    % Clear old plots
+    for aIdx = 1:length(ha)
+        delete(ha(aIdx));
+    end
+    
     % Re-enable all controls
     for control = confControls
         set(control, 'Enable', 'on');
