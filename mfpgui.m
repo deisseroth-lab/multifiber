@@ -64,7 +64,7 @@ handles.savepath = '.';
 handles.savefile = get(handles.save_txt, 'String');
 handles.callback_path = false;
 handles.callback = @(x,y) false;
-handles.calibColors = false;
+handles.calibColors = 'k';
 handles.calibImg.cdata = false;
 
 % Populate dropdowns
@@ -264,15 +264,6 @@ if state
     end
     
     if valid
-        nMasks = size(handles.masks, 3);
-        ref = zeros(1, nMasks); sig = zeros(1, nMasks);
-        i = 0;
-        rate = str2double(get(handles.rate_txt, 'String'));
-        lookback = handles.plotLookback;
-        framesback = lookback * rate;
-        vid = handles.vid;
-        s = handles.s;
-
         % Snap a quick dark frame
         darkframe = getsnapshot(handles.vid);
 
@@ -282,6 +273,17 @@ if state
         else
             darkOffset = applyMasks(handles.masks, darkframe);
         end
+        
+        nMasks = size(handles.masks, 3);
+        ref = zeros(1, nMasks); sig = zeros(1, nMasks);
+        i = 0;
+        rate = str2double(get(handles.rate_txt, 'String'));
+        lookback = handles.plotLookback;
+        framesback = lookback * rate;
+        vid = handles.vid;
+        s = handles.s;
+
+        
         
         % Set up plotting
         ha = tightSubplot(nMasks, 1, 0.1, 0.05, 0.05, handles.plot_pnl);
