@@ -313,12 +313,12 @@ if state
             end
             % Plotting
             jboth = 2 * floor(j / 2);
-            if jboth > 0
+            if jboth > 0 && mod(i, 2) == 0
                 t = (max(1, j-framesback/2):jboth) / rate * 2;
                 for k = 1:nMasks
-                    cla(ha(k));
-                    hold(ha(k), 'on');
+                    hold(ha(k), 'off');
                     plot(ha(k), t, sig(max(1, j-framesback/2):jboth,k), 'Color', handles.calibColors(k,:));
+                    hold(ha(k), 'on');
                     plot(ha(k), t, ref(max(1, j-framesback/2):jboth,k), 'Color', handles.calibColors(k,:), 'LineStyle', '--');
                     if t(1) ~= t(end)
                         xlim(ha(k), [t(1) t(end)]);
