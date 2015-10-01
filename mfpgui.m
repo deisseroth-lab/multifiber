@@ -179,7 +179,7 @@ function snap_btn_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 snapframe = getsnapshot(handles.vid);
 
-% Display the frameframe
+% Display the frame
 figure();
 imagesc(snapframe);
 colorbar();
@@ -283,10 +283,9 @@ if state
         vid = handles.vid;
         s = handles.s;
 
-        
-        
         % Set up plotting
-        ha = tightSubplot(nMasks, 1, 0.1, 0.05, 0.05, handles.plot_pnl);
+        plot_fig = figure();
+        ha = tightSubplot(nMasks, 1, 0.1, 0.05, 0.05, plot_fig);
 
         triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
         start(vid);
