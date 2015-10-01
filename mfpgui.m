@@ -284,7 +284,7 @@ if state
         s = handles.s;
 
         % Set up plotting
-        plot_fig = figure();
+        plot_fig = figure('CloseRequestFcn', @uncloseable);
         ha = tightSubplot(nMasks, 1, 0.1, 0.05, 0.05, plot_fig);
 
         triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
@@ -349,10 +349,8 @@ if state
         end
     end
     
-    % Clear old plots
-    for aIdx = 1:length(ha)
-        delete(ha(aIdx));
-    end
+    % Make the old plots closeable
+    set(plot_fig, 'CloseRequestFcn', @closeable);
     
     % Re-enable all controls
     for control = confControls
@@ -665,3 +663,12 @@ setpref(grp, 'callback_txt', get(handles.callback_txt, 'String'));
 
 % Hint: delete(hObject) closes the figure
 delete(hObject);
+
+function uncloseable(src, callbackdata)
+% A dummy function that makes it impossible to close if used as the
+% CloseRequestFcn
+return
+
+function closeable(src, callbackdata)
+% Does the right thing (closes the figure) if used as the CloseRequestFcn
+delete(src);
