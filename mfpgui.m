@@ -285,7 +285,7 @@ if state
 
         % Set up plotting
         plot_fig = figure('CloseRequestFcn', @uncloseable);
-        ha = tightSubplot(nMasks, 1, 0.1, 0.05, 0.05, plot_fig);
+        ha = tightSubplot(nMasks, 1, 0.1, 0.05, 0.10, plot_fig);
 
         triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
         start(vid);
