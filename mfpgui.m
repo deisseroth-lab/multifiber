@@ -317,10 +317,14 @@ if state
             if jboth > 0 && mod(i, 2) == 0
                 t = (max(1, j-framesback/2):jboth) / rate * 2;
                 for k = 1:nMasks
-                    [~, l1, l2] = plotyy(ha(k), t, sig(max(1, j-framesback/2):jboth,k), t, ref(max(1, j-framesback/2):jboth,k));
+                    [yyax, l1, l2] = plotyy(ha(k), t, sig(max(1, j-framesback/2):jboth,k), t, ref(max(1, j-framesback/2):jboth,k));
+                    linkprop(yyax,{'Xlim'});
                     set(l1, 'Color', handles.calibColors(k,:));
                     set(l2, 'Color', handles.calibColors(k,:));
                     set(l2, 'LineStyle', '--');
+                    set(yyax, {'ycolor'},{'k';'k'});
+                    ylabel(yyax(1), 'Signal');
+                    ylabel(yyax(2), 'Reference');
                     
                     if t(1) ~= t(end)
                         xlim(ha(k), [t(1) t(end)]);
