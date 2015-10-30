@@ -279,7 +279,7 @@ if state
         i = 0;
         rate = str2double(get(handles.rate_txt, 'String'));
         lookback = handles.plotLookback;
-        framesback = lookback * rate;
+        framesback = lookback * rate / 2;
         vid = handles.vid;
         s = handles.s;
 
@@ -338,7 +338,7 @@ if state
             % Plotting
             jboth = 2 * floor(j / 2);
             if jboth > 0 && mod(i, 2) == 0
-                tlen = jboth - max(1, j-framesback/2);
+                tlen = jboth - max(1, j-framesback);
                 tnow = t(end-tlen:end);
                 for k = 1:nMasks
                     % Update y axis limits if necessary
@@ -348,8 +348,8 @@ if state
                     if ref(j,k) * ybuf > ylim(yyaxes(k,2))
                         ylim(yyaxes(k,2), [0 ybuf*ref(j,k)]);
                     end
-                    set(lyy(k,1), 'XData', tnow, 'YData', sig(max(1, j-framesback/2):jboth,k));
-                    set(lyy(k,2), 'XData', tnow, 'YData', ref(max(1, j-framesback/2):jboth,k));
+                    set(lyy(k,1), 'XData', tnow, 'YData', sig(max(1, j-framesback):jboth,k));
+                    set(lyy(k,2), 'XData', tnow, 'YData', ref(max(1, j-framesback):jboth,k));
                 end
             end
             set(handles.elapsed_txt, 'String', datestr(now() - handles.startTime(), 'HH:MM:SS'));
