@@ -286,6 +286,29 @@ if state
         % Set up plotting
         plot_fig = figure('CloseRequestFcn', @uncloseable);
         ha = tightSubplot(nMasks, 1, 0.1, 0.05, 0.10, plot_fig);
+        yyaxes = zeros(nMasks, 2);
+        lyy = zeros(nMasks, 2);
+        t = -lookback:(2/rate):0;
+        ymax = 4;
+        ybuf = 1.1;
+        for k = 1:nMasks
+            [yyax, l1, l2] = plotyy(ha(k), 0, 0, 0, 0);
+            xlim(yyax(1), [-lookback 0]);
+            xlim(yyax(2), [-lookback 0]);
+            ylim(yyax(1), [0 ymax]);
+            ylim(yyax(2), [0 ymax]);
+            linkprop(yyax,{'Xlim'});
+            set(l1, 'Color', handles.calibColors(k,:));
+            set(l2, 'Color', handles.calibColors(k,:));
+            set(l2, 'LineStyle', '--');
+            set(yyax, {'ycolor'},{'k';'k'});
+            ylabel(yyax(1), 'Signal');
+            ylabel(yyax(2), 'Reference');
+            setappdata(gca, 'LegendColorbarManualSpace' ,1);
+            setappdata(gca, 'LegendColorbarReclaimSpace', 1);
+            yyaxes(k,:) = yyax;
+            lyy(k,:) = [l1 l2];
+        end
 
         triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
         start(vid);
@@ -315,20 +338,18 @@ if state
             % Plotting
             jboth = 2 * floor(j / 2);
             if jboth > 0 && mod(i, 2) == 0
-                t = (max(1, j-framesback/2):jboth) / rate * 2;
+                tlen = jboth - max(1, j-framesback/2);
+                tnow = t(end-tlen:end);
                 for k = 1:nMasks
-                    [yyax, l1, l2] = plotyy(ha(k), t, sig(max(1, j-framesback/2):jboth,k), t, ref(max(1, j-framesback/2):jboth,k));
-                    linkprop(yyax,{'Xlim'});
-                    set(l1, 'Color', handles.calibColors(k,:));
-                    set(l2, 'Color', handles.calibColors(k,:));
-                    set(l2, 'LineStyle', '--');
-                    set(yyax, {'ycolor'},{'k';'k'});
-                    ylabel(yyax(1), 'Signal');
-                    ylabel(yyax(2), 'Reference');
-                    
-                    if t(1) ~= t(end)
-                        xlim(ha(k), [t(1) t(end)]);
+                    % Update y axis limits if necessary
+                    if sig(j,k) * ybuf > ylim(yyaxes(k,1))
+                        ylim(yyaxes(k,1), [0 ybuf*sig(j,k)]);
                     end
+                    if ref(j,k) * ybuf > ylim(yyaxes(k,2))
+                        ylim(yyaxes(k,2), [0 ybuf*ref(j,k)]);
+                    end
+                    set(lyy(k,1), 'XData', tnow, 'YData', sig(max(1, j-framesback/2):jboth,k));
+                    set(lyy(k,2), 'XData', tnow, 'YData', ref(max(1, j-framesback/2):jboth,k));
                 end
             end
             set(handles.elapsed_txt, 'String', datestr(now() - handles.startTime(), 'HH:MM:SS'));
