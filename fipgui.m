@@ -1,35 +1,35 @@
-function varargout = mfpgui(varargin)
-% MFPGUI MATLAB code for mfpgui.fig
-%      MFPGUI, by itself, creates a new MFPGUI or raises the existing
+function varargout = fipgui(varargin)
+% FIPGUI MATLAB code for fipgui.fig
+%      FIPGUI, by itself, creates a new FIPGUI or raises the existing
 %      singleton*.
 %
-%      H = MFPGUI returns the handle to a new MFPGUI or the handle to
+%      H = FIPGUI returns the handle to a new FIPGUI or the handle to
 %      the existing singleton*.
 %
-%      MFPGUI('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in MFPGUI.M with the given input arguments.
+%      FIPGUI('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in FIPGUI.M with the given input arguments.
 %
-%      MFPGUI('Property','Value',...) creates a new MFPGUI or raises the
+%      FIPGUI('Property','Value',...) creates a new fipgui or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before mfpgui_OpeningFcn gets called.  An
+%      applied to the GUI before fipgui_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to mfpgui_OpeningFcn via varargin.
+%      stop.  All inputs are passed to fipgui_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help mfpgui
+% Edit the above text to modify the response to help fipgui
 
-% Last Modified by GUIDE v2.5 28-Jul-2015 19:36:41
+% Last Modified by GUIDE v2.5 29-Oct-2015 22:36:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @mfpgui_OpeningFcn, ...
-                   'gui_OutputFcn',  @mfpgui_OutputFcn, ...
+                   'gui_OpeningFcn', @fipgui_OpeningFcn, ...
+                   'gui_OutputFcn',  @fipgui_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,18 +44,18 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before mfpgui is made visible.
-function mfpgui_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before fipgui is made visible.
+function fipgui_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to mfpgui (see VARARGIN)
+% varargin   command line arguments to fipgui (see VARARGIN)
 
 % Parameters
 handles.exposureGap = 0.005;
 handles.plotLookback = 10;
-handles.settingsGroup = 'MFPGUI';
+handles.settingsGroup = 'FIPGUI';
 
 % Defaults
 handles.crop_roi = false;
@@ -151,18 +151,18 @@ else
     handles.callback = str2func(basename);
 end
 
-% Choose default command line output for mfpgui
+% Choose default command line output for fipgui
 handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes mfpgui wait for user response (see UIRESUME)
-% uiwait(handles.mfpgui);
+% UIWAIT makes fipgui wait for user response (see UIRESUME)
+% uiwait(handles.fipgui);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = mfpgui_OutputFcn(hObject, eventdata, handles) 
+function varargout = fipgui_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -546,7 +546,7 @@ src.ExposureTime = 1 / rate - handles.exposureGap;
 handles.vid = vid;
 handles.src = src;
 
-% Choose default command line output for mfpgui
+% Choose default command line output for fipgui
 handles.output = hObject;
 
 % Update handles structure
@@ -671,9 +671,9 @@ set(handles.callback_txt, 'String', '<None>');
 guidata(hObject, handles);
 
 
-% --- Executes when user attempts to close mfpgui.
-function mfpgui_CloseRequestFcn(hObject, eventdata, handles)
-% hObject    handle to mfpgui (see GCBO)
+% --- Executes when user attempts to close fipgui.
+function fipgui_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to fipgui (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
