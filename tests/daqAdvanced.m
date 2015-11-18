@@ -34,7 +34,7 @@ ch = addAnalogInputChannel(s,device.ID,[0 1 ], 'Voltage');
 % need to store DAQ measurements from callback function
 lh = addlistener(s, 'DataAvailable', @(src, event) plot(event.TimeStamps, event.Data));
 s.NotifyWhenDataAvailableExceeds = fs;
-disp('added analog output channel and listener');
+disp('added analog input channel and listener');
 %% Start session running in background
 startBackground(s);
 figure(1);
