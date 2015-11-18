@@ -7,7 +7,7 @@ cd 'C:\Users\user\multifiber\tests';
 devices = daq.getDevices();
 device = devices(1);
 rate = 10;
-fs = rate * 10;
+fs = rate * 100;
 
 s = daq.createSession('ni');
 s.Rate = fs;
@@ -40,24 +40,31 @@ disp('added analog input channel and listener');
 %% Start sessions running in background
 
 % queue analog output data
-queueOutputData(s2,linspace(-1, 1, 1*fs)');
-disp('analog output queued');
 
+duration_in_seconds = 1; tic;
+queueOutputData(s2,linspace(-1, 1, duration_in_seconds*fs)');
+disp('analog output queued'); toc
+
+tic
+% 79 seconds for 100 Hz x 600 m or 1000 Hz * 60m
+% 19 seconds for 100 Hz 3 60 m
 startBackground(s); % there is a slight delay between these two starts
 if use_separate_sessions
     startBackground(s2);
 end
-
+toc
+%%
 figure(1);
 disp('running in background...');
 
-for i = 1:10
+while(true)
     if(s2.IsRunning)
         disp('is running');
     else
         stop(s);
         stop(s2);
         disp('stopped');
+        break
     end
     pause(0.1);
 end
