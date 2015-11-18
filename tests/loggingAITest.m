@@ -1,6 +1,4 @@
-% Test the delay between an analog output and a digital counter session.
-
-% Set to true to use two separate sessions instead of one
+% Test analog input logging, using callback function @logAIData
 cd 'C:\Users\user\multifiber\';
 devices = daq.getDevices();
 device = devices(1);
@@ -31,20 +29,16 @@ figure(1)
 lh = addlistener(s, 'DataAvailable', @logAIData);
 s.NotifyWhenDataAvailableExceeds = fs;
 disp('added analog input channel and listener');
-%% Start sessions running in background
-
+%% Start session running in background
 % queue analog output data
-
 duration_in_seconds = 2; 
 queueOutputData(s,linspace(-1, 1, duration_in_seconds*fs)');
 disp('analog output queued'); 
 
 startBackground(s);
 
-
 figure(1);
 disp('running in background...');
-
 while(true)
     if(s.IsRunning)
         disp('is running');

@@ -1,4 +1,6 @@
-function plotLogFile(filename)
+% Plot a given .csv log file.
+% Returns the timestamps and data.
+function [time, data_AI] = plotLogFile(filename)
 if nargin < 1
     [filename, path] = uigetfile('*.csv');
 end
