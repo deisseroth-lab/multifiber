@@ -22,7 +22,7 @@ function varargout = fipgui(varargin)
 
 % Edit the above text to modify the response to help fipgui
 
-% Last Modified by GUIDE v2.5 29-Oct-2015 22:36:13
+% Last Modified by GUIDE v2.5 18-Nov-2015 10:28:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -115,6 +115,12 @@ sigCh.Frequency = rate / 2;
 sigCh.InitialDelay = 1 / rate * 1.05;
 sigCh.DutyCycle = 0.45;
 disp(['Signal LED should be connected to ' sigCh.Terminal]);
+
+% Enable analog input logging
+ch = addAnalogInputChannel(s,device.ID,[0:7], 'Voltage');
+lh = addlistener(s, 'DataAvailable', @logAIData);
+s.NotifyWhenDataAvailableExceeds = fs;
+disp('Added analog input channels and listener');
 
 handles.camCh = camCh;
 handles.refCh = refCh;

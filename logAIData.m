@@ -5,7 +5,7 @@
 % Use plotLogFile() to view the logged data.
 function logAIData(src, event)    
     % Plot the latest data
-    plot(event.TimeStamps, event.Data);
+    %plot(event.TimeStamps, event.Data);
     
     % Determine log filename -- append results to latest existing log file
     % unless this is a new scan, in which case increment the counter.
