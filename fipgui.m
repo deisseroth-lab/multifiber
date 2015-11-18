@@ -268,7 +268,6 @@ if length(unique(ports)) < length(ports)
     valid = false;
     errordlg('Two or more devices (e.g. reference LED and camera) are set to the same DAQ port. Please correct this to proceed.', 'Config error');
 end
-    
 
 % --- Executes on button press in acquire_tgl.
 function acquire_tgl_Callback(hObject, eventdata, handles)
@@ -413,6 +412,7 @@ if state
         set(control, 'Enable', 'on');
     end
 end
+
 function  save_data(sig, ref, cdata, sigFile, refFile, calibFile)
 save(sigFile, 'sig', '-v7.3');
 save(refFile, 'ref', '-v7.3');
