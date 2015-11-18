@@ -290,8 +290,7 @@ if state
     
     if settings_are_valid(handles)
         % Get save paths
-        [sigFile, refFile, calibFile, logAIFile] = ...
-            get_save_paths(handles);
+        [sigFile, refFile, calibFile, logAIFile] = get_save_paths(handles);
         
         % Snap a quick dark frame
         darkframe = getsnapshot(handles.vid);
