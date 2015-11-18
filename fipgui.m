@@ -128,6 +128,7 @@ disp(['Signal LED should be connected to ' sigCh.Terminal]);
 
 % Enable analog input logging
 ch = addAnalogInputChannel(s,handles.dev.ID,[0:7], 'Voltage');        
+disp(['(optional for logging) Analog inputs should be connected to ai0 - ai7']);
 
 handles.camCh = camCh;
 handles.refCh = refCh;
@@ -244,6 +245,7 @@ set(handles.calibframe_lbl, 'Visible', 'on');
 % Update handles structure
 guidata(hObject, handles);
 
+% Get file paths for saving out put (auto-increment the file counter).
 function [sigFile, refFile, calibFile, logAIFile] = get_save_paths(handles)
 [~, basename, ext] = fileparts(handles.savefile);
 n = 0;
@@ -254,6 +256,19 @@ sigFile = fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]);
 refFile = fullfile(handles.savepath, [basename sprintf('_%03d_reference', n) ext]);
 calibFile = fullfile(handles.savepath, [basename sprintf('_%03d_calibration', n) '.jpg']);
 logAIFile = fullfile(handles.savepath, [basename sprintf('_%03d_logAI', n) '.csv']);
+if exist(logAIFile,'file')==2
+    delete(logAIFile);
+end
+
+% Validate settings
+function valid = settings_are_valid(handles)
+valid = true;
+ports = [get(handles.camport_pop, 'Value'), get(handles.ref_pop, 'Value'), get(handles.sig_pop, 'Value')];
+if length(unique(ports)) < length(ports)
+    valid = false;
+    errordlg('Two or more devices (e.g. reference LED and camera) are set to the same DAQ port. Please correct this to proceed.', 'Config error');
+end
+    
 
 % --- Executes on button press in acquire_tgl.
 function acquire_tgl_Callback(hObject, eventdata, handles)
@@ -279,15 +294,7 @@ if state
         set(control, 'Enable', 'off');
     end
     
-    % Validate settings
-    valid = true;
-    ports = [get(handles.camport_pop, 'Value'), get(handles.ref_pop, 'Value'), get(handles.sig_pop, 'Value')];
-    if length(unique(ports)) < length(ports)
-        valid = false;
-        errordlg('Two or more devices (e.g. reference LED and camera) are set to the same DAQ port. Please correct this to proceed.', 'Config error');
-    end
-    
-    if valid
+    if settings_are_valid(handles)
         % Get save paths
         [sigFile, refFile, calibFile, logAIFile] = get_save_paths(handles);
         
@@ -387,18 +394,16 @@ if state
             set(handles.elapsed_txt, 'String', datestr(now() - handles.startTime(), 'HH:MM:SS'));
         end
 
+        % Stop acquisition
         stop(vid);
         s.stop();
         delete(lh); % delete analog input listener
         set(handles.elapsed_txt, 'String', datestr(0, 'HH:MM:SS'));
 
-        sig = sig(1:j,:); ref = ref(1:j,:);
-        save(sigFile, 'sig', '-v7.3');
-        save(refFile, 'ref', '-v7.3');
-        if any(handles.calibImg.cdata(:))
-            imwrite(handles.calibImg.cdata, calibFile, 'JPEG');
-        end
-    end
+        % Save data
+        save_data(sig(1:j,:), ref(1:j,:), handles.calibImg.cdata, sigFile, refFile, calibFile);
+        
+    end % end settings are valid check
     
     % Make the old plots closeable
     set(plot_fig, 'CloseRequestFcn', @closeable);
@@ -408,7 +413,12 @@ if state
         set(control, 'Enable', 'on');
     end
 end
-
+function  save_data(sig, ref, cdata, sigFile, refFile, calibFile)
+save(sigFile, 'sig', '-v7.3');
+save(refFile, 'ref', '-v7.3');
+if any(cdata(:))
+    imwrite(cdata, calibFile, 'JPEG');
+end
 
 % --- Executes during object creation, after setting all properties.
 function camport_pop_CreateFcn(hObject, eventdata, handles)
