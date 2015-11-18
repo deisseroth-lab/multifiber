@@ -127,10 +127,7 @@ sigCh.DutyCycle = 0.45;
 disp(['Signal LED should be connected to ' sigCh.Terminal]);
 
 % Enable analog input logging
-ch = addAnalogInputChannel(s,device.ID,[0:7], 'Voltage');
-lh = addlistener(s, 'DataAvailable', @logAIData);
-s.NotifyWhenDataAvailableExceeds = fs;
-disp('Added analog input channels and listener');
+ch = addAnalogInputChannel(s,handles.dev.ID,[0:7], 'Voltage');        
 
 handles.camCh = camCh;
 handles.refCh = refCh;
@@ -247,6 +244,16 @@ set(handles.calibframe_lbl, 'Visible', 'on');
 % Update handles structure
 guidata(hObject, handles);
 
+function [sigFile, refFile, calibFile, logAIFile] = get_save_paths(handles)
+[~, basename, ext] = fileparts(handles.savefile);
+n = 0;
+while exist(fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]), 'file') == 2
+    n = n + 1;
+end
+sigFile = fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]);
+refFile = fullfile(handles.savepath, [basename sprintf('_%03d_reference', n) ext]);
+calibFile = fullfile(handles.savepath, [basename sprintf('_%03d_calibration', n) '.jpg']);
+logAIFile = fullfile(handles.savepath, [basename sprintf('_%03d_logAI', n) '.csv']);
 
 % --- Executes on button press in acquire_tgl.
 function acquire_tgl_Callback(hObject, eventdata, handles)
@@ -281,6 +288,14 @@ if state
     end
     
     if valid
+        % Get save paths
+        [sigFile, refFile, calibFile, logAIFile] = get_save_paths(handles);
+        
+        % Add listener for analog input logging        
+        lh = addlistener(handles.s, 'DataAvailable', @(src, event) logAIData(src, event, logAIFile));
+        handles.s.NotifyWhenDataAvailableExceeds = handles.s.Rate*1;
+        disp('Added analog input channels and listener');
+        
         % Snap a quick dark frame
         darkframe = getsnapshot(handles.vid);
 
@@ -374,16 +389,9 @@ if state
 
         stop(vid);
         s.stop();
+        delete(lh); % delete analog input listener
         set(handles.elapsed_txt, 'String', datestr(0, 'HH:MM:SS'));
 
-        [~, basename, ext] = fileparts(handles.savefile);
-        n = 0;
-        while exist(fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]), 'file') == 2
-            n = n + 1;
-        end
-        sigFile = fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]);
-        refFile = fullfile(handles.savepath, [basename sprintf('_%03d_reference', n) ext]);
-        calibFile = fullfile(handles.savepath, [basename sprintf('_%03d_calibration', n) '.jpg']);
         sig = sig(1:j,:); ref = ref(1:j,:);
         save(sigFile, 'sig', '-v7.3');
         save(refFile, 'ref', '-v7.3');

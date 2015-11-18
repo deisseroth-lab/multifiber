@@ -1,5 +1,6 @@
 % Test analog input logging, using callback function @logAIData
 cd 'C:\Users\user\multifiber\';
+log_filename = 'C:\Users\user\multifiber\logs\log.csv';
 devices = daq.getDevices();
 device = devices(1);
 rate = 10;
@@ -26,7 +27,7 @@ t=addAnalogOutputChannel(s,device.ID,'ao0', 'Voltage');
 ch = addAnalogInputChannel(s,device.ID,[0:7 ], 'Voltage');
 figure(1)
 %lh = addlistener(s, 'DataAvailable', @(src, event) plot(event.TimeStamps, event.Data));
-lh = addlistener(s, 'DataAvailable', @logAIData);
+lh = addlistener(s, 'DataAvailable', @(src, event) logAIData(src, event, log_filename));
 s.NotifyWhenDataAvailableExceeds = fs;
 disp('added analog input channel and listener');
 %% Start session running in background
@@ -58,5 +59,5 @@ disp('stopped');
 xlabel('time (s)');
 ylabel('voltage (V)');
 legend('AI1','AI2');
-plotLogFile();
+plotLogFile(log_filename);
 

@@ -2,9 +2,10 @@
 % Returns the timestamps and data.
 function [time, data_AI] = plotLogFile(filename)
 if nargin < 1
-    [filename, path] = uigetfile('*.csv');
+    [name, path] = uigetfile('*.csv');
+    filename = fullfile(path, name);
 end
-M = csvread(fullfile(path, filename));
+M = csvread(filename);
 
 time = M(:,1);
 data_AI = M(:,2:end);
