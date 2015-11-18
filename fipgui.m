@@ -82,9 +82,19 @@ grp = handles.settingsGroup;
 set(handles.camport_pop, 'Value', getpref(grp, 'camport_pop', 1));
 set(handles.ref_pop, 'Value', getpref(grp, 'ref_pop', 2));
 set(handles.sig_pop, 'Value', getpref(grp, 'sig_pop', 3));
-set(handles.rate_txt, 'String', getpref(grp, 'rate_txt', get(handles.rate_txt, 'String')));
+rate_txt = getpref(grp, 'rate_txt', get(handles.rate_txt, 'String'));
+if isnan(str2double(rate_txt))
+    rate_txt = '10'; 
+    warning(['Invalid rate text, setting to default value of ' rate_txt]);
+end
+set(handles.rate_txt, 'String', rate_txt);
 set(handles.cam_pop, 'Value', getpref(grp, 'cam_pop', get(handles.cam_pop, 'Value')));
-set(handles.save_txt, 'String', getpref(grp, 'save_txt', get(handles.save_txt, 'String')));
+save_txt =  getpref(grp, 'save_txt', get(handles.save_txt, 'String'));
+if numel(save_txt) > 1 && save_txt(1) == '0' 
+    save_txt = ''; 
+    warning(['Invalid save text, setting to default value of ' save_txt]);
+end
+set(handles.save_txt, 'String',save_txt);
 set(handles.callback_txt, 'String', getpref(grp, 'callback_txt', get(handles.callback_txt, 'String')));
 
 % Setup DAQ
@@ -146,6 +156,7 @@ rate_txt_Callback(handles.rate_txt, [], handles);
 [pathname, filename, ext] = fileparts(get(handles.save_txt, 'String'));
 handles.savepath = pathname;
 handles.savefile = [filename ext];
+
 % Update callback file information
 [pathname, filename] = fileparts(get(handles.callback_txt, 'String'));
 addpath(pathname);
