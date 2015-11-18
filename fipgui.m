@@ -82,9 +82,19 @@ grp = handles.settingsGroup;
 set(handles.camport_pop, 'Value', getpref(grp, 'camport_pop', 1));
 set(handles.ref_pop, 'Value', getpref(grp, 'ref_pop', 2));
 set(handles.sig_pop, 'Value', getpref(grp, 'sig_pop', 3));
-set(handles.rate_txt, 'String', getpref(grp, 'rate_txt', get(handles.rate_txt, 'String')));
+rate_txt = getpref(grp, 'rate_txt', get(handles.rate_txt, 'String'));
+if isnan(str2double(rate_txt))
+    rate_txt = '10'; 
+    warning(['Invalid rate text, setting to default value of ' rate_txt]);
+end
+set(handles.rate_txt, 'String', rate_txt);
 set(handles.cam_pop, 'Value', getpref(grp, 'cam_pop', get(handles.cam_pop, 'Value')));
-set(handles.save_txt, 'String', getpref(grp, 'save_txt', get(handles.save_txt, 'String')));
+save_txt =  getpref(grp, 'save_txt', get(handles.save_txt, 'String'));
+if numel(save_txt) > 1 && save_txt(1) == '0' 
+    save_txt = ''; 
+    warning(['Invalid save text, setting to default value of ' save_txt]);
+end
+set(handles.save_txt, 'String',save_txt);
 set(handles.callback_txt, 'String', getpref(grp, 'callback_txt', get(handles.callback_txt, 'String')));
 
 % Setup DAQ
@@ -230,6 +240,29 @@ set(handles.calibframe_lbl, 'Visible', 'on');
 % Update handles structure
 guidata(hObject, handles);
 
+% Get file paths for saving out put (auto-increment the file counter).
+function [sigFile, refFile, calibFile, logAIFile] = get_save_paths(handles)
+[~, basename, ext] = fileparts(handles.savefile);
+n = 0;
+while exist(fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]), 'file') == 2
+    n = n + 1;
+end
+sigFile = fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]);
+refFile = fullfile(handles.savepath, [basename sprintf('_%03d_reference', n) ext]);
+calibFile = fullfile(handles.savepath, [basename sprintf('_%03d_calibration', n) '.jpg']);
+logAIFile = fullfile(handles.savepath, [basename sprintf('_%03d_logAI', n) '.csv']);
+if exist(logAIFile,'file')==2
+    delete(logAIFile);
+end
+
+% Validate settings
+function valid = settings_are_valid(handles)
+valid = true;
+ports = [get(handles.camport_pop, 'Value'), get(handles.ref_pop, 'Value'), get(handles.sig_pop, 'Value')];
+if length(unique(ports)) < length(ports)
+    valid = false;
+    errordlg('Two or more devices (e.g. reference LED and camera) are set to the same DAQ port. Please correct this to proceed.', 'Config error');
+end
 
 % --- Executes on button press in acquire_tgl.
 function acquire_tgl_Callback(hObject, eventdata, handles)
@@ -255,15 +288,11 @@ if state
         set(control, 'Enable', 'off');
     end
     
-    % Validate settings
-    valid = true;
-    ports = [get(handles.camport_pop, 'Value'), get(handles.ref_pop, 'Value'), get(handles.sig_pop, 'Value')];
-    if length(unique(ports)) < length(ports)
-        valid = false;
-        errordlg('Two or more devices (e.g. reference LED and camera) are set to the same DAQ port. Please correct this to proceed.', 'Config error');
-    end
-    
-    if valid
+    if settings_are_valid(handles)
+        % Get save paths
+        [sigFile, refFile, calibFile, logAIFile] = ...
+            get_save_paths(handles);
+        
         % Snap a quick dark frame
         darkframe = getsnapshot(handles.vid);
 
@@ -359,20 +388,9 @@ if state
         s.stop();
         set(handles.elapsed_txt, 'String', datestr(0, 'HH:MM:SS'));
 
-        [~, basename, ext] = fileparts(handles.savefile);
-        n = 0;
-        while exist(fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]), 'file') == 2
-            n = n + 1;
-        end
-        sigFile = fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]);
-        refFile = fullfile(handles.savepath, [basename sprintf('_%03d_reference', n) ext]);
-        calibFile = fullfile(handles.savepath, [basename sprintf('_%03d_calibration', n) '.jpg']);
-        sig = sig(1:j,:); ref = ref(1:j,:);
-        save(sigFile, 'sig', '-v7.3');
-        save(refFile, 'ref', '-v7.3');
-        if any(handles.calibImg.cdata(:))
-            imwrite(handles.calibImg.cdata, calibFile, 'JPEG');
-        end
+        % Save data
+        save_data(sig(1:j,:), ref(1:j,:), handles.calibImg.cdata, sigFile, refFile, calibFile);
+
     end
     
     % Make the old plots closeable
@@ -384,6 +402,12 @@ if state
     end
 end
 
+function  save_data(sig, ref, cdata, sigFile, refFile, calibFile)
+save(sigFile, 'sig', '-v7.3');
+save(refFile, 'ref', '-v7.3');
+if any(cdata(:))
+    imwrite(cdata, calibFile, 'JPEG');
+end
 
 % --- Executes during object creation, after setting all properties.
 function camport_pop_CreateFcn(hObject, eventdata, handles)
