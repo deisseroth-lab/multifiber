@@ -23,7 +23,7 @@ t=addAnalogOutputChannel(s,device.ID,'ao0', 'Voltage');
 
 %% Analog input
 % removeChannel(s,2)
-ch = addAnalogInputChannel(s,device.ID,[0 1 ], 'Voltage');
+ch = addAnalogInputChannel(s,device.ID,[0:7 ], 'Voltage');
 figure(1)
 %lh = addlistener(s, 'DataAvailable', @(src, event) plot(event.TimeStamps, event.Data));
 lh = addlistener(s, 'DataAvailable', @logAIData);
@@ -58,4 +58,5 @@ disp('stopped');
 xlabel('time (s)');
 ylabel('voltage (V)');
 legend('AI1','AI2');
+plotLogFile();
 
