@@ -239,7 +239,7 @@ res = get(handles.vid, 'VideoResolution');
 frames = zeros(res(1), res(2), nFrames);
 set(handles.vid, 'ROIPosition', [0 0 res]);
 
-load_analog_output_data(handles);
+load_analog_output_data(handles, true);
 start(handles.vid);
 startBackground(handles.s);
 
@@ -298,23 +298,31 @@ if length(unique(ports)) < length(ports)
 end
 
 % Analog output data must be loaded before a session is started
-function load_analog_output_data(handles)
-    disp('Loading analog output data');
-    analog_output_waveform_enabled = false; % TODO: add a GUI checkbox for this
+function load_analog_output_data(handles, disable_ao_out)    
+    if disable_ao_out
+        analog_output_waveform_enabled = false;
+    else
+        analog_output_waveform_enabled = handles.ao_waveform_path; 
+    end
     if analog_output_waveform_enabled
-        disp('Loading user defined AO output');
-        % TODO: add a GUI input field to get this waveform
-        queueOutputData(handles.s,repmat(linspace(1,2,handles.s.Rate)',[1 4]));
+        disp('Loading user defined AO output');        
+        user_waveform = load_user_ao_waveform(handles);        
+        queueOutputData(handles.s,user_waveform);
         handles.lh_ao.Enabled = false;
-        % TODO: need to set acquisition to stop automatically once waveform
-        % finishes (see daqAdvanced.m)
     else
         handles.lh_ao.Enabled = true;
         disp('Setting all analog output values to 0 V');
         load_zero_valued_ao_data(handles.s,'');        
     end
+function user_waveform = load_user_ao_waveform(handles)
+    t = load(fullfile(handles.ao_waveform_path, handles.ao_waveform_file));
+    % TODO: actually load the waveform. Need to define a format
+    % TODO: check number of channels equals 4 and the rate matches
+    %    handles.s.Rate. actually this check should be done when the path
+    %    is added, but the user could update the file...
+    user_waveform = repmat(linspace(1,2,handles.s.Rate*4)',[1 4]);
     
-% Call back function to load zero valued AO data
+% Call back function to load zero valued AO data 
 function load_zero_valued_ao_data(src, event)
     % minimum output is 50 samples, for 4 channels
     src.queueOutputData(zeros(50,4));
@@ -399,12 +407,14 @@ if state
         end
 
         triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
-        load_analog_output_data(handles);
+        load_analog_output_data(handles, false);
         start(vid);
         s.startBackground();
         handles.startTime = now();
 
-        while get(hObject,'Value')
+        % Stop if value is set to false, or if the user-specified AO
+        % finishes running
+        while get(hObject,'Value') && s.IsRunning
             i = i + 1;      % frame number
             j = ceil(i/2);  % sig/ref pair number
             img = getdata(vid, 1, 'uint16');
@@ -443,6 +453,7 @@ if state
             end
             set(handles.elapsed_txt, 'String', datestr(now() - handles.startTime(), 'HH:MM:SS'));
         end
+        set(hObject,'Value', false); % necessary if AO output just finished
 
         % Stop acquisition
         stop(vid);
