@@ -308,6 +308,7 @@ function load_analog_output_data(handles, disable_ao_out)
     if analog_output_waveform_enabled
         disp('Loading user defined AO output');        
         user_waveform = load_user_ao_waveform(handles);        
+        disp(['AO waveform duration: ' num2str(size(user_waveform,1)/handles.s.Rate) ' seconds']);
         queueOutputData(handles.s,user_waveform);
         handles.lh_ao.Enabled = false;
     else
@@ -315,22 +316,28 @@ function load_analog_output_data(handles, disable_ao_out)
         disp('Setting all analog output values to 0 V');
         load_zero_valued_ao_data(handles.s,'');        
     end
+    
+% Load a user specified AO waveform
+% A valid analog output waveform .mat file must contain two variables:
+%   rate - int. samples per second, must match handles.s.Rate
+%   waveform - (N x 4) vector of voltage values
 function user_waveform = load_user_ao_waveform(handles)
-    t = load(fullfile(handles.ao_waveform_path, handles.ao_waveform_file));
-    % TODO: actually load the waveform. Need to define a format
-    % TODO: check number of channels equals 4 and the rate matches
-    %    handles.s.Rate. actually this check should be done when the path
-    %    is added, but the user could update the file...
+    t = load(fullfile(handles.ao_waveform_path, handles.ao_waveform_file));    
     user_waveform = 0;
+    % TODO: give error gracefully if settings aren't right instead of
+    % messing up the GUI state
     if t.rate ~= handles.s.Rate
-        error('Rates do not match');        
+        error(['Waveform rate ' num2str(t.rate) ' does not match daq rate ' num2str(handles.s.Rate)]);
     else
         if size(t.waveform,2) == 4
             user_waveform = t.waveform;
         else
-            error('Waveform has incorrect number of channels');
+            error(['Waveform has ' num2str(size(t.waveform,2)) ' channels instead of 4.']);
         end        
     end    
+    if max(abs(user_waveform(:))) > 10
+        error('AO output waveform must be between +/- 10 V');
+    end
     
 % Call back function to load zero valued AO data 
 function load_zero_valued_ao_data(src, event)
