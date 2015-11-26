@@ -22,13 +22,19 @@ disp(['Camera should be connected to ' camCh.Terminal]);
 
 %% Analog output
 t=addAnalogOutputChannel(s,device.ID,'ao0', 'Voltage');
+t2=addAnalogOutputChannel(s,device.ID,'ao1', 'Voltage');
 %%   remove % weird bug -- must add data to queue first.
-queueOutputData(s,linspace(-1, 1, 1*fs)');
+queueOutputData(s,repmat(linspace(-1, 1, 1*fs)',[1 2]));
 removeChannel(s, 3);
 s.IsContinuous = true;
 %% queue analog output data
-queueOutputData(s,linspace(-1, 1, 1*fs)');
+queueOutputData(s,repmat(linspace(-1, 1, 1*fs)',[1 2]));
 disp('analog output queued');
+
+%% keep queueing analog output data
+lh_ao=addlistener(s,'DataRequired', ...
+                @(src,event) src.queueOutputData(repmat(linspace(-1, 1, 1*fs/4)',[1 2])));
+% lh_ao.Enabled = false; % to disable
 %% Analog input
 ch = addAnalogInputChannel(s,device.ID,[0 1 ], 'Voltage');
 % need to store DAQ measurements from callback function

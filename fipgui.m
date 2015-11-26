@@ -130,6 +130,16 @@ disp(['Signal LED should be connected to ' sigCh.Terminal]);
 ch = addAnalogInputChannel(s,handles.dev.ID,[0:7], 'Voltage');        
 disp(['(optional for logging) Analog inputs should be connected to ai0 - ai7']);
 
+% Enable analog output
+ao0=addAnalogOutputChannel(s,handles.dev.ID,'ao0', 'Voltage');
+ao1=addAnalogOutputChannel(s,handles.dev.ID,'ao1', 'Voltage');
+ao2=addAnalogOutputChannel(s,handles.dev.ID,'ao2', 'Voltage');
+ao3=addAnalogOutputChannel(s,handles.dev.ID,'ao3', 'Voltage');
+% This listener is enabled if analog outputs are not used, and will
+% continuously set the outputs to zero.
+lh_ao=addlistener(s,'DataRequired', @load_zero_valued_ao_data);                
+
+handles.lh_ao=lh_ao;
 handles.camCh = camCh;
 handles.refCh = refCh;
 handles.sigCh = sigCh;
@@ -212,6 +222,7 @@ res = get(handles.vid, 'VideoResolution');
 frames = zeros(res(1), res(2), nFrames);
 set(handles.vid, 'ROIPosition', [0 0 res]);
 
+load_analog_output_data(handles);
 start(handles.vid);
 startBackground(handles.s);
 
@@ -268,6 +279,28 @@ if length(unique(ports)) < length(ports)
     valid = false;
     errordlg('Two or more devices (e.g. reference LED and camera) are set to the same DAQ port. Please correct this to proceed.', 'Config error');
 end
+
+% Analog output data must be loaded before a session is started
+function load_analog_output_data(handles)
+    disp('Loading analog output data');
+    analog_output_waveform_enabled = false; % TODO: add a GUI checkbox for this
+    if analog_output_waveform_enabled
+        disp('Loading user defined AO output');
+        % TODO: add a GUI input field to get this waveform
+        queueOutputData(handles.s,repmat(linspace(1,2,handles.s.Rate)',[1 4]));
+        handles.lh_ao.Enabled = false;
+        % TODO: need to set acquisition to stop automatically once waveform
+        % finishes (see daqAdvanced.m)
+    else
+        handles.lh_ao.Enabled = true;
+        disp('Setting all analog output values to 0 V');
+        load_zero_valued_ao_data(handles.s,'');        
+    end
+    
+% Call back function to load zero valued AO data
+function load_zero_valued_ao_data(src, event)
+    % minimum output is 50 samples, for 4 channels
+    src.queueOutputData(zeros(50,4));
 
 % --- Executes on button press in acquire_tgl.
 function acquire_tgl_Callback(hObject, eventdata, handles)
@@ -349,6 +382,7 @@ if state
         end
 
         triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
+        load_analog_output_data(handles);
         start(vid);
         s.startBackground();
         handles.startTime = now();
