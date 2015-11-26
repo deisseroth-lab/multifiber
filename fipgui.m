@@ -22,7 +22,7 @@ function varargout = fipgui(varargin)
 
 % Edit the above text to modify the response to help fipgui
 
-% Last Modified by GUIDE v2.5 18-Nov-2015 10:28:24
+% Last Modified by GUIDE v2.5 25-Nov-2015 16:55:49
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -64,6 +64,8 @@ handles.savepath = '.';
 handles.savefile = get(handles.save_txt, 'String');
 handles.callback_path = false;
 handles.callback = @(x,y) false;
+handles.ao_waveform_path = false;
+handles.ao_waveform_file = false;
 handles.calibColors = 'k';
 handles.calibImg.cdata = false;
 
@@ -95,6 +97,12 @@ if numel(save_txt) > 1 && save_txt(1) == '0'
     warning(['Invalid save text, setting to default value of ' save_txt]);
 end
 set(handles.save_txt, 'String',save_txt);
+ao_waveform_txt =  getpref(grp, 'ao_waveform_txt', get(handles.ao_waveform_txt, 'String'));
+if numel(ao_waveform_txt) > 1 && ao_waveform_txt(1) == '0' 
+    ao_waveform_txt = '<None>';     
+    warning(['Invalid ao waveform text, setting to default value of ' ao_waveform_txt]);
+end
+set(handles.ao_waveform_txt, 'String',ao_waveform_txt);
 set(handles.callback_txt, 'String', getpref(grp, 'callback_txt', get(handles.callback_txt, 'String')));
 
 % Setup DAQ
@@ -174,6 +182,15 @@ if strcmp(basename, '<None>')
     handles.callback = @(x,y) false;
 else
     handles.callback = str2func(basename);
+end
+% Update analog output waveform
+[pathname, filename, ext] = fileparts(get(handles.ao_waveform_txt, 'String'));
+if strcmp(basename,'<None>')
+    handles.ao_waveform_path = false;
+    handles.ao_waveform_file = false;
+else
+    handles.ao_waveform_path = pathname;
+    handles.ao_waveform_file = [filename ext];
 end
 
 % Choose default command line output for fipgui
@@ -755,6 +772,7 @@ setpref(grp, 'rate_txt', get(handles.rate_txt, 'String'));
 setpref(grp, 'cam_pop', get(handles.cam_pop, 'Value'));
 setpref(grp, 'save_txt', get(handles.save_txt, 'String'));
 setpref(grp, 'callback_txt', get(handles.callback_txt, 'String'));
+setpref(grp, 'ao_waveform_txt', get(handles.ao_waveform_txt, 'String'));
 
 % Hint: delete(hObject) closes the figure
 delete(hObject);
@@ -767,3 +785,58 @@ return
 function closeable(src, callbackdata)
 % Does the right thing (closes the figure) if used as the CloseRequestFcn
 delete(src);
+
+
+% --- Executes during object creation, after setting all properties.
+function ao_waveform_txt_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ao_waveform_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function ao_waveform_txt_Callback(hObject, eventdata, handles)
+% hObject    handle to ao_waveform_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of ao_waveform_txt as text
+%        str2double(get(hObject,'String')) returns contents of ao_waveform_txt as a double
+[path, file, ext] = fileparts(get(hObject,'String'));
+handles.ao_waveform_path = path;
+handles.ao_waveform_file = [file ext];
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes on button press in ao_waveform_btn.
+function ao_waveform_btn_Callback(hObject, eventdata, handles)
+% hObject    handle to ao_waveform_btn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[filename, pathname] = uigetfile('ao_waveform.mat', 'Save AO waveform .mat file');
+handles.ao_waveform_path = pathname;
+handles.ao_waveform_file = filename;
+set(handles.ao_waveform_txt, 'String', fullfile([pathname filename]));
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes on button press in ao_waveform_clear_btn.
+function ao_waveform_clear_btn_Callback(hObject, eventdata, handles)
+% hObject    handle to ao_waveform_clear_btn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.ao_waveform_path = false;
+handles.ao_waveform_file = false;
+set(handles.ao_waveform_txt, 'String', '<None>');
+
+% Update handles structure
+guidata(hObject, handles);
