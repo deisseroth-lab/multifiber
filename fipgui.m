@@ -143,7 +143,8 @@ ao0=addAnalogOutputChannel(s,handles.dev.ID,'ao0', 'Voltage');
 ao1=addAnalogOutputChannel(s,handles.dev.ID,'ao1', 'Voltage');
 ao2=addAnalogOutputChannel(s,handles.dev.ID,'ao2', 'Voltage');
 ao3=addAnalogOutputChannel(s,handles.dev.ID,'ao3', 'Voltage');
-% This listener is enabled if analog outputs are not used, and will
+disp(['(optional) Analog outputs should be connected to ao0 - ao3']);
+% This listener is enabled later if analog outputs are not used, and will
 % continuously set the outputs to zero.
 lh_ao=addlistener(s,'DataRequired', @load_zero_valued_ao_data);                
 
@@ -309,8 +310,8 @@ function load_analog_output_data(handles, disable_ao_out)
         disp('Loading user defined AO output');        
         user_waveform = load_user_ao_waveform(handles);        
         disp(['AO waveform duration: ' num2str(size(user_waveform,1)/handles.s.Rate) ' seconds']);
-        queueOutputData(handles.s,user_waveform);
-        handles.lh_ao.Enabled = false;
+        handles.lh_ao.Enabled = false;        
+        queueOutputData(handles.s,user_waveform);        
     else
         handles.lh_ao.Enabled = true;
         disp('Setting all analog output values to 0 V');
@@ -431,10 +432,25 @@ if state
 
         % Stop if value is set to false, or if the user-specified AO
         % finishes running
-        while get(hObject,'Value') && s.IsRunning
+        while get(hObject,'Value') 
+            if ~ s.IsRunning
+                % TODO: this only works sometimes...using the work around
+                % with try/catch below for now.                 
+                set(hObject,'Value', false); % necessary if AO output just finished
+                disp('STOPPED RUNNING');
+                break
+            else
+                disp(['still running, i=' num2str(i) '...']);
+            end     
             i = i + 1;      % frame number
             j = ceil(i/2);  % sig/ref pair number
-            img = getdata(vid, 1, 'uint16');
+            try
+                img = getdata(vid, 1, 'uint16');
+            catch e
+                disp('no video data, probably s.IsRunning did not work');
+                set(hObject,'Value', false); % necessary if AO output just finished
+                break
+            end
             avgs = applyMasks(handles.masks, img);
             avgs = avgs - darkOffset;
 
@@ -470,8 +486,7 @@ if state
             end
             set(handles.elapsed_txt, 'String', datestr(now() - handles.startTime(), 'HH:MM:SS'));
         end
-        set(hObject,'Value', false); % necessary if AO output just finished
-
+        
         % Stop acquisition
         stop(vid);
         s.stop();
