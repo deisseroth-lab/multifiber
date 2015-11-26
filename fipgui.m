@@ -185,6 +185,7 @@ else
 end
 % Update analog output waveform
 [pathname, filename, ext] = fileparts(get(handles.ao_waveform_txt, 'String'));
+[~, basename, ext] = fileparts(filename);
 if strcmp(basename,'<None>')
     handles.ao_waveform_path = false;
     handles.ao_waveform_file = false;
@@ -320,7 +321,16 @@ function user_waveform = load_user_ao_waveform(handles)
     % TODO: check number of channels equals 4 and the rate matches
     %    handles.s.Rate. actually this check should be done when the path
     %    is added, but the user could update the file...
-    user_waveform = repmat(linspace(1,2,handles.s.Rate*4)',[1 4]);
+    user_waveform = 0;
+    if t.rate ~= handles.s.Rate
+        error('Rates do not match');        
+    else
+        if size(t.waveform,2) == 4
+            user_waveform = t.waveform;
+        else
+            error('Waveform has incorrect number of channels');
+        end        
+    end    
     
 % Call back function to load zero valued AO data 
 function load_zero_valued_ao_data(src, event)
