@@ -288,6 +288,9 @@ if state
         set(control, 'Enable', 'off');
     end
     
+    % Re-label button
+    set(hObject, 'String', 'Stop acquisition');
+    
     if settings_are_valid(handles)
         % Get save paths
         [sigFile, refFile, calibFile, logAIFile] = get_save_paths(handles);
@@ -404,6 +407,9 @@ if state
     for control = confControls
         set(control, 'Enable', 'on');
     end
+    
+    % Re-label button
+    set(hObject, 'String', 'Acquire data');
 end
 
 function  save_data(sig, ref, cdata, sigFile, refFile, calibFile)
