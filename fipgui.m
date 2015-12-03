@@ -328,7 +328,10 @@ if state
             linkprop(yyax,{'Xlim'});
             set(l1, 'Color', handles.calibColors(k,:));
             set(l2, 'Color', handles.calibColors(k,:));
+            set(l1, 'LineWidth', 2);
             set(l2, 'LineStyle', '--');
+            set(l1, 'LineSmoothing', 'on');
+            set(l2, 'LineSmoothing', 'on');
             set(yyax, {'ycolor'},{'k';'k'});
             ylabel(yyax(1), 'Signal');
             ylabel(yyax(2), 'Reference');
@@ -369,13 +372,15 @@ if state
                 tlen = jboth - max(1, j-framesback);
                 tnow = t(end-tlen:end);
                 for k = 1:nMasks
-                    % Update y axis limits if necessary
-                    if sig(j,k) * ybuf > ylim(yyaxes(k,1))
-                        ylim(yyaxes(k,1), [0 ybuf*sig(j,k)]);
-                    end
-                    if ref(j,k) * ybuf > ylim(yyaxes(k,2))
-                        ylim(yyaxes(k,2), [0 ybuf*ref(j,k)]);
-                    end
+                    sigmin = min(sig(max(1, j-framesback):jboth,k));
+                    sigmax = max(sig(max(1, j-framesback):jboth,k));
+                    
+                    refmin = min(ref(max(1, j-framesback):jboth,k));
+                    refmax = max(ref(max(1, j-framesback):jboth,k));
+                    
+                    ylim(yyaxes(k,1), [sigmin sigmax]);
+                    ylim(yyaxes(k,2), [refmin refmax]);
+
                     set(lyy(k,1), 'XData', tnow, 'YData', sig(max(1, j-framesback):jboth,k));
                     set(lyy(k,2), 'XData', tnow, 'YData', ref(max(1, j-framesback):jboth,k));
                 end
