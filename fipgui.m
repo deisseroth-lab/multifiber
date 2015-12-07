@@ -317,6 +317,11 @@ function load_analog_output_data(handles, disable_ao_out)
         disp('Setting all analog output values to 0 V');
         load_zero_valued_ao_data(handles.s,'');        
     end
+ 
+% Verify user waveform is valid
+function verify_user_ao_waveform(handles)
+    disp('Verifying AO waveform.');
+    load_user_ao_waveform(handles);
     
 % Load a user specified AO waveform
 % A valid analog output waveform .mat file must contain two variables:
@@ -325,8 +330,6 @@ function load_analog_output_data(handles, disable_ao_out)
 function user_waveform = load_user_ao_waveform(handles)
     t = load(fullfile(handles.ao_waveform_path, handles.ao_waveform_file));    
     user_waveform = 0;
-    % TODO: give error gracefully if settings aren't right instead of
-    % messing up the GUI state
     if t.rate ~= handles.s.Rate
         error(['Waveform rate ' num2str(t.rate) ' does not match daq rate ' num2str(handles.s.Rate)]);
     else
@@ -354,6 +357,10 @@ function acquire_tgl_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of acquire_tgl
 state = get(hObject,'Value');
 if state
+    % Pre-check for valid analog output waveform
+    if handles.ao_waveform_path
+        verify_user_ao_waveform(handles);
+    end    
     % Disable all settings
     confControls = [
         handles.camport_pop
@@ -856,6 +863,7 @@ handles.ao_waveform_file = [file ext];
 
 % Update handles structure
 guidata(hObject, handles);
+verify_user_ao_waveform(handles);
 
 
 % --- Executes on button press in ao_waveform_btn.
@@ -867,9 +875,9 @@ function ao_waveform_btn_Callback(hObject, eventdata, handles)
 handles.ao_waveform_path = pathname;
 handles.ao_waveform_file = filename;
 set(handles.ao_waveform_txt, 'String', fullfile([pathname filename]));
-
 % Update handles structure
 guidata(hObject, handles);
+verify_user_ao_waveform(handles);
 
 
 % --- Executes on button press in ao_waveform_clear_btn.
