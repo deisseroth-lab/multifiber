@@ -22,7 +22,7 @@ function varargout = fipgui(varargin)
 
 % Edit the above text to modify the response to help fipgui
 
-% Last Modified by GUIDE v2.5 07-Dec-2015 14:42:57
+% Last Modified by GUIDE v2.5 07-Dec-2015 14:59:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -84,6 +84,7 @@ grp = handles.settingsGroup;
 set(handles.camport_pop, 'Value', getpref(grp, 'camport_pop', 1));
 set(handles.ref_pop, 'Value', getpref(grp, 'ref_pop', 2));
 set(handles.sig_pop, 'Value', getpref(grp, 'sig_pop', 3));
+set(handles.ai_logging_check, 'Value', getpref(grp, 'ai_logging_check'));
 rate_txt = getpref(grp, 'rate_txt', get(handles.rate_txt, 'String'));
 if isnan(str2double(rate_txt))
     rate_txt = '10'; 
@@ -136,6 +137,7 @@ disp(['Signal LED should be connected to ' sigCh.Terminal]);
 
 % Enable analog input logging
 ch = addAnalogInputChannel(s,handles.dev.ID,[0:7], 'Voltage');        
+lh = addlistener(s, 'DataAvailable', @(src, event) 0); % add a dummy listener
 disp(['(optional for logging) Analog inputs should be connected to ai0 - ai7']);
 
 % Enable analog output
@@ -380,10 +382,12 @@ if state
         % Get save paths
         [sigFile, refFile, calibFile, logAIFile] = get_save_paths(handles);
         
-        % Add listener for analog input logging        
-        lh = addlistener(handles.s, 'DataAvailable', @(src, event) logAIData(src, event, logAIFile));
-        handles.s.NotifyWhenDataAvailableExceeds = handles.s.Rate*1;
-        disp('Added analog input channels and listener');
+        if(ai_logging_is_enabled(handles))
+            % Add listener for analog input logging        
+            lh = addlistener(handles.s, 'DataAvailable', @(src, event) logAIData(src, event, logAIFile));
+            handles.s.NotifyWhenDataAvailableExceeds = handles.s.Rate*1;
+            disp('Added analog input channels and listener');
+        end
         
         % Snap a quick dark frame
         darkframe = getsnapshot(handles.vid);
@@ -434,29 +438,37 @@ if state
         triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
         load_analog_output_data(handles, false);
         start(vid);
+        
         s.startBackground();
+        
         handles.startTime = now();
 
         % Stop if value is set to false, or if the user-specified AO
         % finishes running
         while get(hObject,'Value') 
-            if ~ s.IsRunning
-                % TODO: this only works sometimes...using the work around
-                % with try/catch below for now.                 
-                set(hObject,'Value', false); % necessary if AO output just finished
-                disp('STOPPED RUNNING');
-                break
-            else
-                disp(['still running, i=' num2str(i) '...']);
-            end     
+            if( ai_logging_is_enabled(handles))
+                if ~ s.IsRunning
+                    % TODO: this only works sometimes...using the work around
+                    % with try/catch below for now.                 
+                    set(hObject,'Value', false); % necessary if AO output just finished
+                    disp('STOPPED RUNNING');
+                    break
+                else
+                    disp(['still running, i=' num2str(i) '...']);
+                end 
+            end
             i = i + 1;      % frame number
             j = ceil(i/2);  % sig/ref pair number
-            try
+            if( ~ai_logging_is_enabled(handles))
                 img = getdata(vid, 1, 'uint16');
-            catch e
-                disp('no video data, probably s.IsRunning did not work');
-                set(hObject,'Value', false); % necessary if AO output just finished
-                break
+            else
+                try
+                    img = getdata(vid, 1, 'uint16');
+                catch e
+                    disp('no video data, probably s.IsRunning did not work');
+                    set(hObject,'Value', false); % necessary if AO output just finished
+                    break
+                end
             end
             avgs = applyMasks(handles.masks, img);
             avgs = avgs - darkOffset;
@@ -497,7 +509,9 @@ if state
         % Stop acquisition
         stop(vid);
         s.stop();
-        delete(lh); % delete analog input listener
+        if(ai_logging_is_enabled(handles))
+            delete(lh); % delete analog input listener
+        end
         set(handles.elapsed_txt, 'String', datestr(0, 'HH:MM:SS'));
 
         % Save data
@@ -823,6 +837,7 @@ setpref(grp, 'cam_pop', get(handles.cam_pop, 'Value'));
 setpref(grp, 'save_txt', get(handles.save_txt, 'String'));
 setpref(grp, 'callback_txt', get(handles.callback_txt, 'String'));
 setpref(grp, 'ao_waveform_txt', get(handles.ao_waveform_txt, 'String'));
+setpref(grp, 'ai_logging_check', get(handles.ai_logging_check, 'Value'));
 
 % Hint: delete(hObject) closes the figure
 delete(hObject);
@@ -899,3 +914,14 @@ function viewlog_btn_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 plotLogFile(handles.savepath, true);
+
+
+% --- Executes on button press in ai_logging_check.
+function ai_logging_check_Callback(hObject, eventdata, handles)
+% hObject    handle to ai_logging_check (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of ai_logging_check
+function is_enabled = ai_logging_is_enabled(handles)
+    is_enabled = get(handles.ai_logging_check,'Value');
