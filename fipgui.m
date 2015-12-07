@@ -22,7 +22,7 @@ function varargout = fipgui(varargin)
 
 % Edit the above text to modify the response to help fipgui
 
-% Last Modified by GUIDE v2.5 25-Nov-2015 16:55:49
+% Last Modified by GUIDE v2.5 07-Dec-2015 14:42:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -891,3 +891,11 @@ set(handles.ao_waveform_txt, 'String', '<None>');
 
 % Update handles structure
 guidata(hObject, handles);
+
+
+% --- Executes on button press in viewlog_btn.
+function viewlog_btn_Callback(hObject, eventdata, handles)
+% hObject    handle to viewlog_btn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+plotLogFile(handles.savepath, true);
