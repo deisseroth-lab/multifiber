@@ -373,7 +373,11 @@ if state
         handles.snap_btn
         handles.calibframe_btn
         handles.save_txt
-        handles.callback_txt];
+        handles.callback_txt
+        handles.ai_logging_check
+        handles.ao_waveform_btn
+        handles.ao_waveform_clear_btn
+        handles.ao_waveform_txt];
     for control = confControls
         set(control, 'Enable', 'off');
     end
@@ -446,30 +450,28 @@ if state
         % Stop if value is set to false, or if the user-specified AO
         % finishes running
         while get(hObject,'Value') 
-            if( ai_logging_is_enabled(handles))
-                if ~ s.IsRunning
-                    % TODO: this only works sometimes...using the work around
-                    % with try/catch below for now.                 
-                    set(hObject,'Value', false); % necessary if AO output just finished
-                    disp('STOPPED RUNNING');
-                    break
-                else
-                    disp(['still running, i=' num2str(i) '...']);
-                end 
-            end
+            
+            if ~ s.IsRunning
+                % TODO: this only works sometimes...using the work around
+                % with try/catch below for now.                 
+                set(hObject,'Value', false); % necessary if AO output just finished
+                disp('STOPPED RUNNING');
+                break
+            else
+                disp(['still running, i=' num2str(i) '...']);
+            end 
+            
             i = i + 1;      % frame number
             j = ceil(i/2);  % sig/ref pair number
-            if( ~ai_logging_is_enabled(handles))
+                        
+            try
                 img = getdata(vid, 1, 'uint16');
-            else
-                try
-                    img = getdata(vid, 1, 'uint16');
-                catch e
-                    disp('no video data, probably s.IsRunning did not work');
-                    set(hObject,'Value', false); % necessary if AO output just finished
-                    break
-                end
+            catch e
+                disp('no video data, probably s.IsRunning did not work');
+                set(hObject,'Value', false); % necessary if AO output just finished
+                break
             end
+            
             avgs = applyMasks(handles.masks, img);
             avgs = avgs - darkOffset;
 
