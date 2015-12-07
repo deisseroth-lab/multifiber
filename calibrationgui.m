@@ -53,7 +53,7 @@ function calibrationgui_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to calibrationgui (see VARARGIN)
 
 % Choose default command line output for calibrationgui
-handles.output = hObject;
+handles.output.hObject = hObject;
 
 % Parameters
 radius_range = [20 50];
