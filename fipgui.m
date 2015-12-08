@@ -84,7 +84,11 @@ grp = handles.settingsGroup;
 set(handles.camport_pop, 'Value', getpref(grp, 'camport_pop', 1));
 set(handles.ref_pop, 'Value', getpref(grp, 'ref_pop', 2));
 set(handles.sig_pop, 'Value', getpref(grp, 'sig_pop', 3));
-set(handles.ai_logging_check, 'Value', getpref(grp, 'ai_logging_check'));
+try
+    set(handles.ai_logging_check, 'Value', getpref(grp, 'ai_logging_check'));
+catch e
+    set(handles.ai_logging_check, 'Value',true);
+end
 rate_txt = getpref(grp, 'rate_txt', get(handles.rate_txt, 'String'));
 if isnan(str2double(rate_txt))
     rate_txt = '10'; 
