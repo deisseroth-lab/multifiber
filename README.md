@@ -20,7 +20,7 @@ Note: It may be possible to modify the software to work with other MATLAB-suppor
 1. PC to support the above hardware -- see [Hamamatsu PC Recommendations](http://www.hamamatsu.com/sp/sys/en/documents/PCRecommendationforOrca-Flash4.0_20150212.pdf)
 
 ## Software requirements
-1. MATLAB (tested with 2013b, 2014b)
+1. MATLAB (tested with R2013b, R2014b, R2015a, R2015b)
 1. MATLAB [Image Acquisition](http://www.mathworks.com/products/imaq/) toolbox and [adaptor for camera](http://www.mathworks.com/help/imaq/installing-the-support-packages-for-image-acquisition-toolbox-adaptors.html). The Image Acquisition toolbox may require the Image Processing toolbox.
 1. MATLAB [Data Acquisition](http://www.mathworks.com/products/daq/) toolbox
 
@@ -34,7 +34,9 @@ Note: It may be possible to modify the software to work with other MATLAB-suppor
 In the GUI, select a call-back function, e.g. `sample_scripts/sample_callback.m`.
 
 ## User-defined analog output voltage waveforms
-Run `sample_generate_ao_waveform.m` or `sample_generate_ao_waveform_stim.m` to produce an example waveform file, then in the GUI, select that waveform `.mat` file. 
+Run `sample_generate_ao_waveform.m` or `sample_generate_ao_waveform_stim.m` to produce an example waveform file, then in the GUI, select that waveform `.mat` file.
+
+Implementation detail: the digital counter waveforms and analog output waveforms are in the same Session object, so the synchronization will be consistent across acquisition sessions. However, the precise synchronization may be different with different versions of MATLAB (e.g. R2013b to R2015b and possibly more). Use analog input recording to verify the accuracy of any synchronization, and adjust the analog output waveform accordingly (e.g. set `stim_start` in `sample_scripts/sample_generate_ao_waveform_stim.m`).
 
 ## Analog input recording
 Ensure the desired physical connections are made to the DAQ analog input channels. Then, in the GUI, enable the checkbox for analog input recording. A `.csv` file will be saved along with the other acquisition data. Visualize the recorded data by using the GUI button or `plotLogFile.m`.
