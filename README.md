@@ -1,7 +1,7 @@
 # multifiber
 A minimal GUI for doing frame-projected independent-fiber photometry
 
-See <link to paper>
+See [link to paper].
 
 ## Background
 Frame-projected independent-fiber photometry records the sum fluorescence from each of several optical fibers by imaging the fiber bundle onto a camera sensor and digitally cropping and summing the fluorescence from each fiber. Alternating excitation wavelengths for successive frames enables concurrent sampling of multiple spectral channels and/or optical stimulation.
@@ -21,13 +21,13 @@ Note: It may be possible to modify the software to work with other MATLAB-suppor
 
 ## Software requirements
 1. MATLAB (tested with 2013b, 2014b)
-1. MATLAB Image Acquisition toolbox and [adaptor for camera](http://www.mathworks.com/help/imaq/installing-the-support-packages-for-image-acquisition-toolbox-adaptors.html)
-1. MATLAB Data Acquisition toolbox
+1. MATLAB [Image Acquisition](http://www.mathworks.com/products/imaq/) toolbox and [adaptor for camera](http://www.mathworks.com/help/imaq/installing-the-support-packages-for-image-acquisition-toolbox-adaptors.html)
+1. MATLAB [Data Acquisition](http://www.mathworks.com/products/daq/) toolbox
 
 ## Installation and configuration
-1. Ensure the camera and DAQ hardware are accessible using their provided software (e.g. HCImage Live).
+1. Ensure the camera and DAQ hardware are accessible using their provided software (e.g. [HCImage Live](http://hcimage.com/hcimage-overview/hcimage-live/)).
 1. Ensure the MATLAB toolboxes and camera adaptor are installed (see above).
-1. Run fipgui.m
+1. Run `fipgui.m`.
 1. In the GUI, select the counter channels to correspond to the physical DAQ connections.
 
 ## Real-time data access
