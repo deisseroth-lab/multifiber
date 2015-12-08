@@ -21,7 +21,7 @@ Note: It may be possible to modify the software to work with other MATLAB-suppor
 
 ## Software requirements
 1. MATLAB (tested with 2013b, 2014b)
-1. MATLAB [Image Acquisition](http://www.mathworks.com/products/imaq/) toolbox and [adaptor for camera](http://www.mathworks.com/help/imaq/installing-the-support-packages-for-image-acquisition-toolbox-adaptors.html)
+1. MATLAB [Image Acquisition](http://www.mathworks.com/products/imaq/) toolbox and [adaptor for camera](http://www.mathworks.com/help/imaq/installing-the-support-packages-for-image-acquisition-toolbox-adaptors.html). The Image Acquisition toolbox may require the Image Processing toolbox.
 1. MATLAB [Data Acquisition](http://www.mathworks.com/products/daq/) toolbox
 
 ## Installation and configuration
@@ -44,3 +44,4 @@ Ensure the desired physical connections are made to the DAQ analog input channel
 1. If the GUI crashes during initialization, there may be a problen with the
 configurations that FIPGUI persists between sessions. Try running
 `rmpref('FIPGUI')` at the Matlab command line and try again.
+1. Errors involving `vid = videoinput(adaptors{camDeviceN}, IDs(camDeviceN), formats{camDeviceN});`: check if IMAQ video adaptor is installed (`imaghwinfo`).
