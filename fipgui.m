@@ -338,8 +338,10 @@ if state
             set(l2, 'Color', handles.calibColors(k,:));
             set(l1, 'LineWidth', 2);
             set(l2, 'LineStyle', '--');
-            set(l1, 'LineSmoothing', 'on');
-            set(l2, 'LineSmoothing', 'on');
+            if verLessThan('matlab', '8.5')
+                set(l1, 'LineSmoothing', 'on');
+                set(l2, 'LineSmoothing', 'on');
+            end
             set(yyax, {'ycolor'},{'k';'k'});
             ylabel(yyax(1), 'Signal');
             ylabel(yyax(2), 'Reference');
