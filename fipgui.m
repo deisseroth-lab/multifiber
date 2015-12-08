@@ -273,6 +273,8 @@ function acquire_tgl_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of acquire_tgl
 state = get(hObject,'Value');
 if state
+    verify_callback_function(handles);    
+    
     % Disable all settings
     confControls = [
         handles.camport_pop
@@ -283,7 +285,10 @@ if state
         handles.snap_btn
         handles.calibframe_btn
         handles.save_txt
-        handles.callback_txt];
+        handles.callback_txt
+        handles.callback_clear_btn
+        handles.callback_btn
+        handles.save_btn];
     for control = confControls
         set(control, 'Enable', 'off');
     end
@@ -657,7 +662,7 @@ set(handles.callback_txt, 'String', fullfile([pathname filename]));
 
 % Update handles structure
 guidata(hObject, handles);
-
+verify_callback_function(handles);
 
 function save_txt_Callback(hObject, eventdata, handles)
 % hObject    handle to save_txt (see GCBO)
@@ -691,7 +696,10 @@ handles.callback = str2func(file);
 % Update handles structure
 guidata(hObject, handles);
 
-
+function verify_callback_function(handles)
+    if handles.callback_path
+        handles.callback(0,'test');
+    end
 % --- Executes on button press in callback_clear_btn.
 function callback_clear_btn_Callback(hObject, eventdata, handles)
 % hObject    handle to callback_clear_btn (see GCBO)
