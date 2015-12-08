@@ -148,7 +148,13 @@ ao3=addAnalogOutputChannel(s,handles.dev.ID,'ao3', 'Voltage');
 disp(['(optional) Analog outputs should be connected to ao0 - ao3']);
 % This listener is enabled later if analog outputs are not used, and will
 % continuously set the outputs to zero.
-lh_ao=addlistener(s,'DataRequired', @load_zero_valued_ao_data);                
+lh_ao=addlistener(s,'DataRequired', @load_zero_valued_ao_data);     
+
+% Workaround for s.IsRunning bug. (see main acquisition for details)
+% Load and send a short AO waveform.
+load_zero_valued_ao_data(s,''); 
+s.startBackground();
+stop(s);
 
 handles.lh_ao=lh_ao;
 handles.camCh = camCh;
@@ -460,28 +466,37 @@ if state
 
         % Stop if value is set to false, or if the user-specified AO
         % finishes running
+        if handles.ao_waveform_path
+            disp('Waiting for user to end acquisition or AO waveform to finish...');
+        else
+            disp('Waiting for user to end acquisition...');
+        end
         while get(hObject,'Value') 
             
-            if ~ s.IsRunning
-                % TODO: this only works sometimes...using the work around
-                % with try/catch below for now.                 
-                set(hObject,'Value', false); % necessary if AO output just finished
-                disp('STOPPED RUNNING');
-                break
-            else
-                disp(['still running, i=' num2str(i) '...']);
+            if ~ s.IsRunning                
+                disp('AO waveform output finished.');
+                set(hObject,'Value', false); % Exit loop if AO output just finished                
+                break            
             end 
-            
-            i = i + 1;      % frame number
-            j = ceil(i/2);  % sig/ref pair number
                         
             try
                 img = getdata(vid, 1, 'uint16');
             catch e
-                disp('no video data, probably s.IsRunning did not work');
-                set(hObject,'Value', false); % necessary if AO output just finished
+                % Most likely cause for getting here is the s.IsRunning bug: 
+                %   without the workaround implemented above in init, the very
+                %   first acquisition, if AO is enabled, will fail to stop 
+                %   (s.IsRunning is True indefinitely despite the waveform
+                %   having stopped). As a side effect, the synchronization
+                %   of the AO waveform and digital counter channels appears
+                %   to be consistently different.
+                disp('ERROR: AO and counters may not be synced. See s.IsRunning bug comments');
+                warning('See s.IsRunning bug comments');
+                set(hObject,'Value', false); % Exit loop if AO output just finished
                 break
             end
+            
+            i = i + 1;      % frame number
+            j = ceil(i/2);  % sig/ref pair number                        
             
             avgs = applyMasks(handles.masks, img);
             avgs = avgs - darkOffset;
