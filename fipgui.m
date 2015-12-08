@@ -363,6 +363,8 @@ if state
     if handles.ao_waveform_path
         verify_user_ao_waveform(handles);
     end    
+    verify_callback_function(handles);    
+    
     % Disable all settings
     confControls = [
         handles.camport_pop
@@ -377,10 +379,16 @@ if state
         handles.ai_logging_check
         handles.ao_waveform_btn
         handles.ao_waveform_clear_btn
-        handles.ao_waveform_txt];
+        handles.ao_waveform_txt
+        handles.callback_clear_btn
+        handles.callback_btn
+        handles.save_btn];
     for control = confControls
         set(control, 'Enable', 'off');
     end
+    
+    % Re-label button
+    set(hObject, 'String', 'Stop acquisition');
     
     if settings_are_valid(handles)
         % Get save paths
@@ -429,7 +437,10 @@ if state
             linkprop(yyax,{'Xlim'});
             set(l1, 'Color', handles.calibColors(k,:));
             set(l2, 'Color', handles.calibColors(k,:));
+            set(l1, 'LineWidth', 2);
             set(l2, 'LineStyle', '--');
+            set(l1, 'LineSmoothing', 'on');
+            set(l2, 'LineSmoothing', 'on');
             set(yyax, {'ycolor'},{'k';'k'});
             ylabel(yyax(1), 'Signal');
             ylabel(yyax(2), 'Reference');
@@ -494,13 +505,15 @@ if state
                 tlen = jboth - max(1, j-framesback);
                 tnow = t(end-tlen:end);
                 for k = 1:nMasks
-                    % Update y axis limits if necessary
-                    if sig(j,k) * ybuf > ylim(yyaxes(k,1))
-                        ylim(yyaxes(k,1), [0 ybuf*sig(j,k)]);
-                    end
-                    if ref(j,k) * ybuf > ylim(yyaxes(k,2))
-                        ylim(yyaxes(k,2), [0 ybuf*ref(j,k)]);
-                    end
+                    sigmin = min(sig(max(1, j-framesback):jboth,k));
+                    sigmax = max(sig(max(1, j-framesback):jboth,k));
+                    
+                    refmin = min(ref(max(1, j-framesback):jboth,k));
+                    refmax = max(ref(max(1, j-framesback):jboth,k));
+                    
+                    ylim(yyaxes(k,1), [sigmin sigmax]);
+                    ylim(yyaxes(k,2), [refmin refmax]);
+
                     set(lyy(k,1), 'XData', tnow, 'YData', sig(max(1, j-framesback):jboth,k));
                     set(lyy(k,2), 'XData', tnow, 'YData', ref(max(1, j-framesback):jboth,k));
                 end
@@ -528,6 +541,9 @@ if state
     for control = confControls
         set(control, 'Enable', 'on');
     end
+    
+    % Re-label button
+    set(hObject, 'String', 'Acquire data');
 end
 
 function  save_data(sig, ref, cdata, sigFile, refFile, calibFile)
@@ -775,7 +791,7 @@ set(handles.callback_txt, 'String', fullfile([pathname filename]));
 
 % Update handles structure
 guidata(hObject, handles);
-
+verify_callback_function(handles);
 
 function save_txt_Callback(hObject, eventdata, handles)
 % hObject    handle to save_txt (see GCBO)
@@ -809,7 +825,10 @@ handles.callback = str2func(file);
 % Update handles structure
 guidata(hObject, handles);
 
-
+function verify_callback_function(handles)
+    if handles.callback_path
+        handles.callback(0,'test');
+    end
 % --- Executes on button press in callback_clear_btn.
 function callback_clear_btn_Callback(hObject, eventdata, handles)
 % hObject    handle to callback_clear_btn (see GCBO)
