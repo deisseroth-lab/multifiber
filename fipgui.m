@@ -532,8 +532,12 @@ if state
                     refmin = min(ref(max(1, j-framesback):jboth,k));
                     refmax = max(ref(max(1, j-framesback):jboth,k));
                     
-                    ylim(yyaxes(k,1), [sigmin sigmax]);
-                    ylim(yyaxes(k,2), [refmin refmax]);
+                    if sigmax > sigmin
+                        ylim(yyaxes(k,1), [sigmin sigmax]);
+                    end
+                    if refmax > refmin
+                        ylim(yyaxes(k,2), [refmin refmax]);
+                    end
 
                     set(lyy(k,1), 'XData', tnow, 'YData', sig(max(1, j-framesback):jboth,k));
                     set(lyy(k,2), 'XData', tnow, 'YData', ref(max(1, j-framesback):jboth,k));
