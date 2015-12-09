@@ -22,7 +22,7 @@ function varargout = fipgui(varargin)
 
 % Edit the above text to modify the response to help fipgui
 
-% Last Modified by GUIDE v2.5 29-Oct-2015 22:36:13
+% Last Modified by GUIDE v2.5 07-Dec-2015 14:59:52
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -64,6 +64,8 @@ handles.savepath = '.';
 handles.savefile = get(handles.save_txt, 'String');
 handles.callback_path = false;
 handles.callback = @(x,y) false;
+handles.ao_waveform_path = false;
+handles.ao_waveform_file = false;
 handles.calibColors = 'k';
 handles.calibImg.cdata = false;
 
@@ -82,6 +84,11 @@ grp = handles.settingsGroup;
 set(handles.camport_pop, 'Value', getpref(grp, 'camport_pop', 1));
 set(handles.ref_pop, 'Value', getpref(grp, 'ref_pop', 2));
 set(handles.sig_pop, 'Value', getpref(grp, 'sig_pop', 3));
+try
+    set(handles.ai_logging_check, 'Value', getpref(grp, 'ai_logging_check'));
+catch e
+    set(handles.ai_logging_check, 'Value',true);
+end
 rate_txt = getpref(grp, 'rate_txt', get(handles.rate_txt, 'String'));
 if isnan(str2double(rate_txt))
     rate_txt = '10'; 
@@ -95,6 +102,12 @@ if numel(save_txt) > 1 && save_txt(1) == '0'
     warning(['Invalid save text, setting to default value of ' save_txt]);
 end
 set(handles.save_txt, 'String',save_txt);
+ao_waveform_txt =  getpref(grp, 'ao_waveform_txt', get(handles.ao_waveform_txt, 'String'));
+if numel(ao_waveform_txt) > 1 && ao_waveform_txt(1) == '0' 
+    ao_waveform_txt = '<None>';     
+    warning(['Invalid ao waveform text, setting to default value of ' ao_waveform_txt]);
+end
+set(handles.ao_waveform_txt, 'String',ao_waveform_txt);
 set(handles.callback_txt, 'String', getpref(grp, 'callback_txt', get(handles.callback_txt, 'String')));
 
 % Setup DAQ
@@ -126,6 +139,28 @@ sigCh.InitialDelay = 1 / rate * 1.05;
 sigCh.DutyCycle = 0.45;
 disp(['Signal LED should be connected to ' sigCh.Terminal]);
 
+% Enable analog input logging
+ch = addAnalogInputChannel(s,handles.dev.ID,[0:7], 'Voltage');        
+lh = addlistener(s, 'DataAvailable', @(src, event) 0); % add a dummy listener
+disp(['(optional for logging) Analog inputs should be connected to ai0 - ai7']);
+
+% Enable analog output
+ao0=addAnalogOutputChannel(s,handles.dev.ID,'ao0', 'Voltage');
+ao1=addAnalogOutputChannel(s,handles.dev.ID,'ao1', 'Voltage');
+ao2=addAnalogOutputChannel(s,handles.dev.ID,'ao2', 'Voltage');
+ao3=addAnalogOutputChannel(s,handles.dev.ID,'ao3', 'Voltage');
+disp(['(optional) Analog outputs should be connected to ao0 - ao3']);
+% This listener is enabled later if analog outputs are not used, and will
+% continuously set the outputs to zero.
+lh_ao=addlistener(s,'DataRequired', @load_zero_valued_ao_data);     
+
+% Workaround for s.IsRunning bug. (see main acquisition for details)
+% Load and send a short AO waveform.
+load_zero_valued_ao_data(s,''); 
+s.startBackground();
+stop(s);
+
+handles.lh_ao=lh_ao;
 handles.camCh = camCh;
 handles.refCh = refCh;
 handles.sigCh = sigCh;
@@ -150,6 +185,7 @@ rate_txt_Callback(handles.rate_txt, [], handles);
 [pathname, filename, ext] = fileparts(get(handles.save_txt, 'String'));
 handles.savepath = pathname;
 handles.savefile = [filename ext];
+
 % Update callback file information
 [pathname, filename] = fileparts(get(handles.callback_txt, 'String'));
 addpath(pathname);
@@ -159,6 +195,16 @@ if strcmp(basename, '<None>')
     handles.callback = @(x,y) false;
 else
     handles.callback = str2func(basename);
+end
+% Update analog output waveform
+[pathname, filename, ext] = fileparts(get(handles.ao_waveform_txt, 'String'));
+[~, basename, ext] = fileparts(filename);
+if strcmp(basename,'<None>')
+    handles.ao_waveform_path = false;
+    handles.ao_waveform_file = false;
+else
+    handles.ao_waveform_path = pathname;
+    handles.ao_waveform_file = [filename ext];
 end
 
 % Choose default command line output for fipgui
@@ -207,6 +253,7 @@ res = get(handles.vid, 'VideoResolution');
 frames = zeros(res(1), res(2), nFrames);
 set(handles.vid, 'ROIPosition', [0 0 res]);
 
+load_analog_output_data(handles, true);
 start(handles.vid);
 startBackground(handles.s);
 
@@ -264,6 +311,55 @@ if length(unique(ports)) < length(ports)
     errordlg('Two or more devices (e.g. reference LED and camera) are set to the same DAQ port. Please correct this to proceed.', 'Config error');
 end
 
+% Analog output data must be loaded before a session is started
+function load_analog_output_data(handles, disable_ao_out)    
+    if disable_ao_out
+        analog_output_waveform_enabled = false;
+    else
+        analog_output_waveform_enabled = handles.ao_waveform_path; 
+    end
+    if analog_output_waveform_enabled
+        disp('Loading user defined AO output');        
+        user_waveform = load_user_ao_waveform(handles);        
+        disp(['AO waveform duration: ' num2str(size(user_waveform,1)/handles.s.Rate) ' seconds']);
+        handles.lh_ao.Enabled = false;        
+        queueOutputData(handles.s,user_waveform);        
+    else
+        handles.lh_ao.Enabled = true;
+        disp('Setting all analog output values to 0 V');
+        load_zero_valued_ao_data(handles.s,'');        
+    end
+ 
+% Verify user waveform is valid
+function verify_user_ao_waveform(handles)
+    disp('Verifying AO waveform.');
+    load_user_ao_waveform(handles);
+    
+% Load a user specified AO waveform
+% A valid analog output waveform .mat file must contain two variables:
+%   rate - int. samples per second, must match handles.s.Rate
+%   waveform - (N x 4) vector of voltage values
+function user_waveform = load_user_ao_waveform(handles)
+    t = load(fullfile(handles.ao_waveform_path, handles.ao_waveform_file));    
+    user_waveform = 0;
+    if t.rate ~= handles.s.Rate
+        error(['Waveform rate ' num2str(t.rate) ' does not match daq rate ' num2str(handles.s.Rate)]);
+    else
+        if size(t.waveform,2) == 4
+            user_waveform = t.waveform;
+        else
+            error(['Waveform has ' num2str(size(t.waveform,2)) ' channels instead of 4.']);
+        end        
+    end    
+    if max(abs(user_waveform(:))) > 10
+        error('AO output waveform must be between +/- 10 V');
+    end
+    
+% Call back function to load zero valued AO data 
+function load_zero_valued_ao_data(src, event)
+    % minimum output is 50 samples, for 4 channels
+    src.queueOutputData(zeros(50,4));
+
 % --- Executes on button press in acquire_tgl.
 function acquire_tgl_Callback(hObject, eventdata, handles)
 % hObject    handle to acquire_tgl (see GCBO)
@@ -273,6 +369,10 @@ function acquire_tgl_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of acquire_tgl
 state = get(hObject,'Value');
 if state
+    % Pre-check for valid analog output waveform
+    if handles.ao_waveform_path
+        verify_user_ao_waveform(handles);
+    end    
     verify_callback_function(handles);    
     
     % Disable all settings
@@ -286,6 +386,10 @@ if state
         handles.calibframe_btn
         handles.save_txt
         handles.callback_txt
+        handles.ai_logging_check
+        handles.ao_waveform_btn
+        handles.ao_waveform_clear_btn
+        handles.ao_waveform_txt
         handles.callback_clear_btn
         handles.callback_btn
         handles.save_btn];
@@ -299,6 +403,13 @@ if state
     if settings_are_valid(handles)
         % Get save paths
         [sigFile, refFile, calibFile, logAIFile] = get_save_paths(handles);
+        
+        if(ai_logging_is_enabled(handles))
+            % Add listener for analog input logging        
+            lh = addlistener(handles.s, 'DataAvailable', @(src, event) logAIData(src, event, logAIFile));
+            handles.s.NotifyWhenDataAvailableExceeds = handles.s.Rate*1;
+            disp('Added analog input channels and listener');
+        end
         
         % Snap a quick dark frame
         darkframe = getsnapshot(handles.vid);
@@ -352,14 +463,47 @@ if state
         end
 
         triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
+        load_analog_output_data(handles, false);
         start(vid);
+        
         s.startBackground();
+        
         handles.startTime = now();
 
-        while get(hObject,'Value')
+        % Stop if value is set to false, or if the user-specified AO
+        % finishes running
+        if handles.ao_waveform_path
+            disp('Waiting for user to end acquisition or AO waveform to finish...');
+        else
+            disp('Waiting for user to end acquisition...');
+        end
+        while get(hObject,'Value') 
+            
+            if ~ s.IsRunning                
+                disp('AO waveform output finished.');
+                set(hObject,'Value', false); % Exit loop if AO output just finished                
+                break            
+            end 
+                        
+            try
+                img = getdata(vid, 1, 'uint16');
+            catch e
+                % Most likely cause for getting here is the s.IsRunning bug: 
+                %   without the workaround implemented above in init, the very
+                %   first acquisition, if AO is enabled, will fail to stop 
+                %   (s.IsRunning is True indefinitely despite the waveform
+                %   having stopped). As a side effect, the synchronization
+                %   of the AO waveform and digital counter channels appears
+                %   to be consistently different.
+                disp('ERROR: AO and counters may not be synced. See s.IsRunning bug comments');
+                warning('See s.IsRunning bug comments');
+                set(hObject,'Value', false); % Exit loop if AO output just finished
+                break
+            end
+            
             i = i + 1;      % frame number
-            j = ceil(i/2);  % sig/ref pair number
-            img = getdata(vid, 1, 'uint16');
+            j = ceil(i/2);  % sig/ref pair number                        
+            
             avgs = applyMasks(handles.masks, img);
             avgs = avgs - darkOffset;
 
@@ -397,15 +541,19 @@ if state
             end
             set(handles.elapsed_txt, 'String', datestr(now() - handles.startTime(), 'HH:MM:SS'));
         end
-
+        
+        % Stop acquisition
         stop(vid);
         s.stop();
+        if(ai_logging_is_enabled(handles))
+            delete(lh); % delete analog input listener
+        end
         set(handles.elapsed_txt, 'String', datestr(0, 'HH:MM:SS'));
 
         % Save data
         save_data(sig(1:j,:), ref(1:j,:), handles.calibImg.cdata, sigFile, refFile, calibFile);
-
-    end
+        
+    end % end settings are valid check
     
     % Make the old plots closeable
     set(plot_fig, 'CloseRequestFcn', @closeable);
@@ -730,6 +878,8 @@ setpref(grp, 'rate_txt', get(handles.rate_txt, 'String'));
 setpref(grp, 'cam_pop', get(handles.cam_pop, 'Value'));
 setpref(grp, 'save_txt', get(handles.save_txt, 'String'));
 setpref(grp, 'callback_txt', get(handles.callback_txt, 'String'));
+setpref(grp, 'ao_waveform_txt', get(handles.ao_waveform_txt, 'String'));
+setpref(grp, 'ai_logging_check', get(handles.ai_logging_check, 'Value'));
 
 % Hint: delete(hObject) closes the figure
 delete(hObject);
@@ -742,3 +892,78 @@ return
 function closeable(src, callbackdata)
 % Does the right thing (closes the figure) if used as the CloseRequestFcn
 delete(src);
+
+
+% --- Executes during object creation, after setting all properties.
+function ao_waveform_txt_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ao_waveform_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function ao_waveform_txt_Callback(hObject, eventdata, handles)
+% hObject    handle to ao_waveform_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of ao_waveform_txt as text
+%        str2double(get(hObject,'String')) returns contents of ao_waveform_txt as a double
+[path, file, ext] = fileparts(get(hObject,'String'));
+handles.ao_waveform_path = path;
+handles.ao_waveform_file = [file ext];
+
+% Update handles structure
+guidata(hObject, handles);
+verify_user_ao_waveform(handles);
+
+
+% --- Executes on button press in ao_waveform_btn.
+function ao_waveform_btn_Callback(hObject, eventdata, handles)
+% hObject    handle to ao_waveform_btn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[filename, pathname] = uigetfile('ao_waveform.mat', 'Save AO waveform .mat file');
+handles.ao_waveform_path = pathname;
+handles.ao_waveform_file = filename;
+set(handles.ao_waveform_txt, 'String', fullfile([pathname filename]));
+% Update handles structure
+guidata(hObject, handles);
+verify_user_ao_waveform(handles);
+
+
+% --- Executes on button press in ao_waveform_clear_btn.
+function ao_waveform_clear_btn_Callback(hObject, eventdata, handles)
+% hObject    handle to ao_waveform_clear_btn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.ao_waveform_path = false;
+handles.ao_waveform_file = false;
+set(handles.ao_waveform_txt, 'String', '<None>');
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes on button press in viewlog_btn.
+function viewlog_btn_Callback(hObject, eventdata, handles)
+% hObject    handle to viewlog_btn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+plotLogFile(handles.savepath, true);
+
+
+% --- Executes on button press in ai_logging_check.
+function ai_logging_check_Callback(hObject, eventdata, handles)
+% hObject    handle to ai_logging_check (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of ai_logging_check
+function is_enabled = ai_logging_is_enabled(handles)
+    is_enabled = get(handles.ai_logging_check,'Value');
