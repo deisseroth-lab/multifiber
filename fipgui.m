@@ -358,7 +358,7 @@ function user_waveform = load_user_ao_waveform(handles)
 % Call back function to load zero valued AO data 
 function load_zero_valued_ao_data(src, event)
     % minimum output is 50 samples, for 4 channels
-    src.queueOutputData(zeros(50,4));
+    src.queueOutputData(zeros(200,4));
 
 % --- Executes on button press in acquire_tgl.
 function acquire_tgl_Callback(hObject, eventdata, handles)
