@@ -357,8 +357,8 @@ function user_waveform = load_user_ao_waveform(handles)
     
 % Call back function to load zero valued AO data 
 function load_zero_valued_ao_data(src, event)
-    % minimum output is 50 samples, for 4 channels
-    src.queueOutputData(zeros(200,4));
+    % minimum output is 0.5s of samples, for 4 channels
+    src.queueOutputData(zeros(5000,4));
 
 % --- Executes on button press in acquire_tgl.
 function acquire_tgl_Callback(hObject, eventdata, handles)
@@ -407,7 +407,7 @@ if state
         if(ai_logging_is_enabled(handles))
             % Add listener for analog input logging        
             lh = addlistener(handles.s, 'DataAvailable', @(src, event) logAIData(src, event, logAIFile));
-            handles.s.NotifyWhenDataAvailableExceeds = handles.s.Rate*1;
+            handles.s.NotifyWhenDataAvailableExceeds = round(handles.s.Rate*1);
             disp('Added analog input channels and listener');
         end
         
