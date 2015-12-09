@@ -496,7 +496,7 @@ if state
                 %   of the AO waveform and digital counter channels appears
                 %   to be consistently different.
                 disp('ERROR: AO and counters may not be synced. See s.IsRunning bug comments');
-                warning('See s.IsRunning bug comments');
+                warning('See s.IsRunning bug comments'); beep;
                 set(hObject,'Value', false); % Exit loop if AO output just finished
                 break
             end
@@ -543,7 +543,16 @@ if state
                     set(lyy(k,2), 'XData', tnow, 'YData', ref(max(1, j-framesback):jboth,k));
                 end
             end
-            set(handles.elapsed_txt, 'String', datestr(now() - handles.startTime(), 'HH:MM:SS'));
+            
+            % Check to make sure camera acquisition is keeping up.
+            elapsed_time = (now() - handles.startTime());
+            rate = str2double(get(handles.rate_txt,'String'));            
+            if abs(elapsed_time*24*3600 - (i)/rate) > 1 % if camera acquisition falls behind more than 1 s...
+                warning('ERROR: Camera acquisition fell behind! Select a smaller ROI or lower speed and try again.');
+                set(hObject,'Value', false); beep;
+                break
+            end
+            set(handles.elapsed_txt, 'String', datestr(elapsed_time, 'HH:MM:SS'));
         end
         
         % Stop acquisition
