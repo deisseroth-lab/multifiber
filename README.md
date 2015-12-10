@@ -46,4 +46,4 @@ Ensure the desired physical connections are made to the DAQ analog input channel
 1. If the GUI crashes during initialization, there may be a problen with the
 configurations that FIPGUI persists between sessions. Try running
 `rmpref('FIPGUI')` at the Matlab command line and try again.
-1. Errors involving `vid = videoinput(adaptors{camDeviceN}, IDs(camDeviceN), formats{camDeviceN});`: check if IMAQ video adaptor is installed (`imaghwinfo`).
+

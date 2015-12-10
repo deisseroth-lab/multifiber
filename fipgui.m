@@ -73,6 +73,9 @@ handles.calibImg.cdata = false;
 imaqreset();
 [adaptors, devices, formats, IDs] = getCameraHardware();
 nDevs = length(adaptors);
+if nDevs == 0
+    error('MATLAB IMAQ detected no available camera devices to connect to. Fix this and restart MATLAB.');
+end
 options = {};
 for i = 1:nDevs
     options{i} = [adaptors{i} ' ' devices{i} ' ' formats{i}];
