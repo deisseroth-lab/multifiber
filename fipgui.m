@@ -53,7 +53,7 @@ function fipgui_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to fipgui (see VARARGIN)
 
 % Parameters
-handles.exposureGap = 0.005;
+handles.exposureGap = 0;
 handles.plotLookback = 10;
 handles.settingsGroup = 'FIPGUI';
 
@@ -176,7 +176,6 @@ src = getselectedsource(vid);
 vid.FramesPerTrigger = 1; 
 vid.TriggerRepeat = Inf;
 vid.ROIPosition = [0 0 vid.VideoResolution];
-src.ExposureTime = 1 / rate - handles.exposureGap;
 
 handles.vid = vid;
 handles.src = src;
@@ -218,6 +217,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
+update_camera_exposure_time(handles);
 
 % UIWAIT makes fipgui wait for user response (see UIRESUME)
 % uiwait(handles.fipgui);
@@ -287,6 +287,16 @@ masks = masks(min(rows):max(rows), min(cols):max(cols), :);
 handles.crop_roi = crop_roi;
 handles.masks = logical(masks);
 handles.vid.ROIPosition = crop_roi;
+% This also sets the exposureGap. This assumes bidirectional center-out
+% rolling shutter
+r_min = min(rows);
+r_max = max(rows);
+r_center = 1024; % center row for orca
+row_range = min(r_max-r_min, ceil(max(abs(r_center - r_min), abs(r_center -r_max))));
+handles.exposureGap = 0.0002 + 0.010/1024*row_range;
+disp(['exposureGap = ' num2str(handles.exposureGap)]);
+guidata(hObject, handles);
+update_camera_exposure_time(handles)
 
 set(handles.acquire_tgl, 'Enable', 'on');
 set(handles.calibframe_lbl, 'Visible', 'off');
@@ -693,10 +703,10 @@ set(handles.refCh, 'Frequency', rate / 2);
 set(handles.sigCh, 'InitialDelay', 1 / rate * 0.05);
 set(handles.sigCh, 'Frequency', rate / 2);
 set(handles.sigCh, 'InitialDelay', 1 / rate * 1.05);
-set(handles.src, 'ExposureTime', 1 / rate - handles.exposureGap);
 
 % Update handles structure
 guidata(hObject, handles);
+update_camera_exposure_time(handles);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -734,7 +744,9 @@ disp(['Camera should be connected to ' handles.camCh.Terminal]);
 % Update handles structure
 guidata(hObject, handles);
 
-
+function update_camera_exposure_time(handles)
+   rate = str2double(get(handles.rate_txt, 'String'));
+   handles.src.ExposureTime = 1 / rate - handles.exposureGap;
 function cam_pop_Callback(hObject, eventdata, handles)
 % hObject    handle to cam_pop (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -750,7 +762,6 @@ vid = videoinput(adaptors{camDeviceN}, IDs(camDeviceN), formats{camDeviceN});
 src = getselectedsource(vid);
 vid.FramesPerTrigger = 1; 
 vid.TriggerRepeat = Inf;
-src.ExposureTime = 1 / rate - handles.exposureGap;
 
 handles.vid = vid;
 handles.src = src;
@@ -760,6 +771,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
+update_camera_exposure_time(handles);
 
 
 % --- Executes during object creation, after setting all properties.
