@@ -210,6 +210,9 @@ else
     handles.ao_waveform_file = [filename ext];
 end
 
+% Disable acquisition until calibration is run
+set(handles.acquire_tgl, 'Enable', 'off');
+
 % Choose default command line output for fipgui
 handles.output = hObject;
 
@@ -285,7 +288,8 @@ handles.crop_roi = crop_roi;
 handles.masks = logical(masks);
 handles.vid.ROIPosition = crop_roi;
 
-set(handles.calibframe_lbl, 'Visible', 'on');
+set(handles.acquire_tgl, 'Enable', 'on');
+set(handles.calibframe_lbl, 'Visible', 'off');
 
 % Update handles structure
 guidata(hObject, handles);
