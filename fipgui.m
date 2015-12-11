@@ -474,7 +474,7 @@ if state
             set(l2, 'Color', handles.calibColors(k,:));
             set(l1, 'LineWidth', 2);
             set(l2, 'LineStyle', '--');
-            if verLessThan('matlab', '8.5')
+            if verLessThan('matlab', '8.4')
                 set(l1, 'LineSmoothing', 'on');
                 set(l2, 'LineSmoothing', 'on');
             end
@@ -575,8 +575,14 @@ if state
             elapsed_time = (now() - handles.startTime());
             rate = str2double(get(handles.rate_txt,'String'));            
             if abs(elapsed_time*24*3600 - (i)/rate) > 1 % if camera acquisition falls behind more than 1 s...
+                fraction_frames_acquired = i/(elapsed_time*24*3600*rate);                
                 if j > 0
-                    warning('ERROR: Camera acquisition fell behind! Select a smaller ROI or lower speed and try again.'); beep;
+                    disp(['fraction of frames acquired: ' num2str(fraction_frames_acquired)]);
+                    if abs(fraction_frames_acquired - 0.5) < 0.04
+                        warning('ERROR: Only got half as many frames as expected. Most likely check trigger connections; less likely: select a smaller ROI or lower speed and try again.');
+                    else
+                        warning('ERROR: Camera acquisition fell behind! Select a smaller ROI or lower speed and try again.'); beep;
+                    end
                 end
                 set(hObject,'Value', false);
                 break
