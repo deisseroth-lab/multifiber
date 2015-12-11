@@ -53,6 +53,7 @@ function fipgui_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to fipgui (see VARARGIN)
 
 % Parameters
+handles.computer_dependent_delay = 0.00015; % seconds
 handles.exposureGap = 0;
 handles.plotLookback = 10;
 handles.settingsGroup = 'FIPGUI';
@@ -298,9 +299,12 @@ handles.vid.ROIPosition = crop_roi;
 % rolling shutter
 r_min = min(rows);
 r_max = max(rows);
-r_center = 1024; % center row for orca
+res = handles.vid.VideoResolution;
+r_center = res(1)/2; % center row for orca
 row_range = min(r_max-r_min, ceil(max(abs(r_center - r_min), abs(r_center -r_max))));
-handles.exposureGap = 0.0002 + 0.010/1024*row_range;
+disp(row_range);
+full_frame_readout_time = 0.010; % camera and mode dependent, assumes Orca FAST mode
+handles.exposureGap = handles.computer_dependent_delay + full_frame_readout_time/(res(1)/2)*row_range;
 disp(['exposureGap = ' num2str(handles.exposureGap)]);
 guidata(hObject, handles);
 update_camera_exposure_time(handles)
@@ -570,7 +574,7 @@ if state
                     set(lyy(k,2), 'XData', tnow, 'YData', ref(max(1, j-framesback):jboth,k));
                 end
             end
-            
+                       
             % Check to make sure camera acquisition is keeping up.
             elapsed_time = (now() - handles.startTime());
             rate = str2double(get(handles.rate_txt,'String'));            
@@ -579,9 +583,9 @@ if state
                 if j > 0
                     disp(['fraction of frames acquired: ' num2str(fraction_frames_acquired)]);
                     if abs(fraction_frames_acquired - 0.5) < 0.04
-                        warning('ERROR: Only got half as many frames as expected. Most likely check trigger connections; less likely: select a smaller ROI or lower speed and try again.');
+                        warning('ERROR: Only got half as many frames as expected. Most likely check trigger connections; less likely: select a smaller ROI or lower speed and try again. Last resort: increase handles.computer_dependent_delay');
                     else
-                        warning('ERROR: Camera acquisition fell behind! Select a smaller ROI or lower speed and try again.'); beep;
+                        warning('ERROR: Camera acquisition fell behind! Select a smaller ROI or lower speed and try again. Last resort: increase handles.computer_dependent_delay'); beep;
                     end
                 end
                 set(hObject,'Value', false);
@@ -589,7 +593,8 @@ if state
             end
             set(handles.elapsed_txt, 'String', datestr(elapsed_time, 'HH:MM:SS'));
         end
-        
+        disp('...acquisition complete.');
+         
         % Stop acquisition
         stop(vid);
         s.stop();
