@@ -441,6 +441,7 @@ if state
         nMasks = size(handles.masks, 3);
         ref = zeros(1, nMasks); sig = zeros(1, nMasks);
         i = 0;
+        j = 0;
         rate = str2double(get(handles.rate_txt, 'String'));
         lookback = handles.plotLookback;
         framesback = lookback * rate / 2;
@@ -512,8 +513,10 @@ if state
                 %   having stopped). As a side effect, the synchronization
                 %   of the AO waveform and digital counter channels appears
                 %   to be consistently different.
-                disp('ERROR: AO and counters may not be synced. See s.IsRunning bug comments');
-                warning('See s.IsRunning bug comments'); beep;
+                if j > 0
+                    disp('ERROR: AO and counters may not be synced. See s.IsRunning bug comments');
+                    warning('See s.IsRunning bug comments'); beep;
+                end
                 set(hObject,'Value', false); % Exit loop if AO output just finished
                 break
             end
@@ -565,8 +568,10 @@ if state
             elapsed_time = (now() - handles.startTime());
             rate = str2double(get(handles.rate_txt,'String'));            
             if abs(elapsed_time*24*3600 - (i)/rate) > 1 % if camera acquisition falls behind more than 1 s...
-                warning('ERROR: Camera acquisition fell behind! Select a smaller ROI or lower speed and try again.');
-                set(hObject,'Value', false); beep;
+                if j > 0
+                    warning('ERROR: Camera acquisition fell behind! Select a smaller ROI or lower speed and try again.'); beep;
+                end
+                set(hObject,'Value', false);
                 break
             end
             set(handles.elapsed_txt, 'String', datestr(elapsed_time, 'HH:MM:SS'));
@@ -581,7 +586,11 @@ if state
         set(handles.elapsed_txt, 'String', datestr(0, 'HH:MM:SS'));
 
         % Save data
-        save_data(sig(1:j,:), ref(1:j,:), handles.calibImg.cdata, sigFile, refFile, calibFile);
+        if j > 0
+            save_data(sig(1:j,:), ref(1:j,:), handles.calibImg.cdata, sigFile, refFile, calibFile);
+        else
+            warning('No frames captured or saved! Check camera trigger connection. Then restart MATLAB.'); beep;
+        end
         
     end % end settings are valid check
     
