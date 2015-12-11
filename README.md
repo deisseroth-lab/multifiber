@@ -1,4 +1,4 @@
-# multifiber
+fip# multifiber
 A minimal GUI for doing frame-projected independent-fiber photometry
 
 See [link to paper].

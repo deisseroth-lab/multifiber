@@ -123,24 +123,31 @@ handles.dev = device;
 s = daq.createSession('ni');
 s.Rate = fs;
 s.IsContinuous = true;
+try
+    camCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.camport_pop), 'PulseGeneration');
+    camCh.Frequency = rate;
+    camCh.InitialDelay = 0;
+    camCh.DutyCycle = 0.1;
+    disp(['Camera should be connected to ' camCh.Terminal]);
 
-camCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.camport_pop), 'PulseGeneration');
-camCh.Frequency = rate;
-camCh.InitialDelay = 0;
-camCh.DutyCycle = 0.1;
-disp(['Camera should be connected to ' camCh.Terminal]);
+    refCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.ref_pop), 'PulseGeneration');
+    refCh.Frequency = rate / 2;
+    refCh.InitialDelay = 1 / rate * 0.05;
+    refCh.DutyCycle = 0.45;
+    disp(['Reference LED should be connected to ' refCh.Terminal]);
 
-refCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.ref_pop), 'PulseGeneration');
-refCh.Frequency = rate / 2;
-refCh.InitialDelay = 1 / rate * 0.05;
-refCh.DutyCycle = 0.45;
-disp(['Reference LED should be connected to ' refCh.Terminal]);
-
-sigCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.sig_pop), 'PulseGeneration');
-sigCh.Frequency = rate / 2;
-sigCh.InitialDelay = 1 / rate * 1.05;
-sigCh.DutyCycle = 0.45;
-disp(['Signal LED should be connected to ' sigCh.Terminal]);
+    sigCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.sig_pop), 'PulseGeneration');
+    sigCh.Frequency = rate / 2;
+    sigCh.InitialDelay = 1 / rate * 1.05;
+    sigCh.DutyCycle = 0.45;
+    disp(['Signal LED should be connected to ' sigCh.Terminal]);
+catch e
+    disp(e);
+    setpref('FIPGUI', 'camport_pop',1);
+    setpref('FIPGUI', 'ref_pop',2);
+    setpref('FIPGUI', 'sig_pop',3);
+    error('Restart MATLAB');
+end
 
 % Enable analog input logging
 ch = addAnalogInputChannel(s,handles.dev.ID,[0:7], 'Voltage');        
@@ -588,8 +595,8 @@ if state
         % Save data
         if j > 0
             save_data(sig(1:j,:), ref(1:j,:), handles.calibImg.cdata, sigFile, refFile, calibFile);
-        else
-            warning('No frames captured or saved! Check camera trigger connection. Then restart MATLAB.'); beep;
+        else            
+            warning(['No frames captured or saved! Check camera trigger connection is ' handles.camCh.Terminal '. Then restart MATLAB.']); beep;
         end
         
     end % end settings are valid check

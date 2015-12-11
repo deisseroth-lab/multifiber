@@ -3,7 +3,7 @@ function [ idx ] = chIdx(s, ch)
 channels = s.Channels;
 Nch = length(channels);
 for idx = 1:Nch
-    if channels(idx).ID == ch.ID
+    if strcmp( channels(idx).ID, ch.ID)
         return
     end
 end
