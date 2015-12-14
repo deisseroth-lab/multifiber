@@ -310,7 +310,6 @@ row_range = min(r_max-r_min, ceil(max(abs(r_center - r_min), abs(r_center -r_max
 disp(row_range);
 full_frame_readout_time = 0.010; % camera and mode dependent, assumes Orca FAST mode
 handles.exposureGap = handles.computer_dependent_delay + full_frame_readout_time/(res(1)/2)*row_range;
-disp(['exposureGap = ' num2str(handles.exposureGap)]);
 guidata(hObject, handles);
 update_camera_exposure_time(handles)
 

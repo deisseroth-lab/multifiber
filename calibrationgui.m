@@ -76,6 +76,14 @@ end
 
 % Process the input image
 handles.image = varargin{1};
+max_value = max(handles.image(:));
+if max_value >= 65535
+    warning('WARNING: Calibration image has saturated pixels');
+end
+disp(['Calibration image uses ' num2str(max_value*100/65535) '% of camera dynamic range.']);
+if max_value*100/65535 < 10
+    warning('Consider increasing the light power or reducing the acquisition rate for better signal to noise.');
+end
 imagesc(handles.image, 'Parent', handles.img_ax);
 handles.frameSize = size(handles.image);
 
