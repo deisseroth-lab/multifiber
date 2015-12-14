@@ -800,6 +800,9 @@ handles.output = hObject;
 guidata(hObject, handles);
 update_camera_exposure_time(handles);
 
+% Disable acquisition until calibration is run
+set(handles.acquire_tgl, 'Enable', 'off');
+
 
 % --- Executes during object creation, after setting all properties.
 function cam_pop_CreateFcn(hObject, eventdata, handles)
