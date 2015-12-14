@@ -49,7 +49,7 @@ The maximum acquisition rate may depend on several factors:
 
 ## Troubleshooting
 1. The `tests/` directory contains tests for checking each hardware component separately.
-1. If the GUI crashes during initialization, there may be a problen with the
-configurations that FIPGUI persists between sessions. Try running
+1. If the GUI crashes during initialization, there may be a problen with the configurations that FIPGUI persists between sessions. Try running
 `rmpref('FIPGUI')` at the Matlab command line and try again.
+1. If the camera acquisition cannot keep up, as a last resort, try increasing `handles.computer_dependent_delay`.
 

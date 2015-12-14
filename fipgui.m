@@ -78,8 +78,13 @@ if nDevs == 0
     error('MATLAB IMAQ detected no available camera devices to connect to. Fix this and restart MATLAB.');
 end
 options = {};
+j = 1;
 for i = 1:nDevs
-    options{i} = [adaptors{i} ' ' devices{i} ' ' formats{i}];
+    % Support only the Orca's "Fast" mode.
+    if( length(findstr('Fast', formats{i})) > 0)
+        options{j} = [adaptors{i} ' ' devices{i} ' ' formats{i}];
+        j = j+1;
+    end
 end
 set(handles.cam_pop, 'String', options);
 
@@ -802,6 +807,7 @@ update_camera_exposure_time(handles);
 
 % Disable acquisition until calibration is run
 set(handles.acquire_tgl, 'Enable', 'off');
+set(handles.calibframe_lbl, 'Visible', 'on');
 
 
 % --- Executes during object creation, after setting all properties.
