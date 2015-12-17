@@ -75,16 +75,11 @@ imaqreset();
 [adaptors, devices, formats, IDs] = getCameraHardware();
 nDevs = length(adaptors);
 if nDevs == 0
-    error('MATLAB IMAQ detected no available camera devices to connect to. Fix this and restart MATLAB.');
+    error('MATLAB IMAQ detected no available Orca camera devices to connect to. Fix this and restart MATLAB.');
 end
 options = {};
-j = 1;
 for i = 1:nDevs
-    % Support only the Orca's "Fast" mode.
-    if( length(findstr('Fast', formats{i})) > 0)
-        options{j} = [adaptors{i} ' ' devices{i} ' ' formats{i}];
-        j = j+1;
-    end
+        options{i} = [adaptors{i} ' ' devices{i} ' ' formats{i}];
 end
 set(handles.cam_pop, 'String', options);
 

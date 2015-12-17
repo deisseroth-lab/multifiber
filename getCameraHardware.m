@@ -9,12 +9,15 @@ for adaptor = adaptors.InstalledAdaptors
     devices = imaqhwinfo(adaptor{:});
     for device = devices.DeviceInfo
         for format = device.SupportedFormats
-            i = i + 1;
-            adaptorsOut = [adaptorsOut adaptor];
-            devNameParts = strsplit(device.DeviceName, ',');
-            devicesOut{i} = devNameParts{1};
-            formatsOut = [formatsOut format];
-            IDsOut = [IDsOut device.DeviceID];
+            % Support only the Orca's "Fast" mode.
+            if( length(findstr('Fast', format{1})) > 0)
+                i = i + 1;
+                adaptorsOut = [adaptorsOut adaptor];
+                devNameParts = strsplit(device.DeviceName, ',');
+                devicesOut{i} = devNameParts{1};
+                formatsOut = [formatsOut format];
+                IDsOut = [IDsOut device.DeviceID];
+            end
         end
     end
 end
