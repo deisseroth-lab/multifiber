@@ -273,6 +273,7 @@ frames = zeros(res(1), res(2), nFrames);
 set(handles.vid, 'ROIPosition', [0 0 res]);
 
 load_analog_output_data(handles, true);
+triggerconfig(handles.vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
 start(handles.vid);
 startBackground(handles.s);
 
