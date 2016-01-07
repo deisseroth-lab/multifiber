@@ -143,7 +143,12 @@ function done_btn_Callback(hObject, eventdata, handles)
 % hObject    handle to done_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-nfibers = length(handles.ellipses);
+nfibers = 0;
+for i = 1:length(handles.ellipses)
+    if isvalid(handles.ellipses{i})
+        nfibers = nfibers +1;
+    end
+end
 frsz = handles.frameSize;
 colors = zeros(nfibers, 3);
 masks = zeros([frsz nfibers]);
@@ -151,14 +156,17 @@ masks = zeros([frsz nfibers]);
 % Store this labeled image for saving later
 figImg = getframe(gcf);
 
-
-for i = 1:nfibers
-    e = handles.ellipses{i};
-    pos = e.getVertices();
-    x = pos(:,1); y = pos(:,2);
-    mask = poly2mask(x, y, frsz(1), frsz(2));
-    masks(:,:,i) = mask;
-    colors(i,:) = e.getColor();
+i = 0;
+for j = 1:nfibers
+    e = handles.ellipses{j};
+    if isvalid(e)
+        i = i +1;
+        pos = e.getVertices();
+        x = pos(:,1); y = pos(:,2);
+        mask = poly2mask(x, y, frsz(1), frsz(2));
+        masks(:,:,i) = mask;
+        colors(i,:) = e.getColor();
+    end
 end
 
 handles.output.figImg = figImg;
