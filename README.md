@@ -1,12 +1,12 @@
-fip# multifiber
+#fip multifiber
 A minimal GUI for doing frame-projected independent-fiber photometry
 
-See [link to paper].
+See [link to paper forthcoming].
 
 ## Background
 Frame-projected independent-fiber photometry records the sum fluorescence from each of several optical fibers by imaging the fiber bundle onto a camera sensor and digitally cropping and summing the fluorescence from each fiber. Alternating excitation wavelengths for successive frames enables concurrent sampling of multiple spectral channels and/or optical stimulation.
 
-## Scope
+## Hardware setup description
 The software synchronizes various hardware (light sources, camera acquisition, behavoral apparatuses) by using digital and analog output voltage waveforms and reads image frames from the camera. The measure camera signal from each fiber position can be processed, visualized and accessed in real-time, and saved to hard disk for later analysis. In addition, simultaneous analog input recording is enabled.
 
 Up to 4 analog output waveforms can be user-defined for controlling behavoral apparatuses and other hardware.
