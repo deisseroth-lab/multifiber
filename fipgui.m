@@ -54,6 +54,7 @@ function fipgui_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Parameters
 handles.computer_dependent_delay = 0.00015; % seconds
+handles.sample_rate_factor = 10; % how much faster DAQ samples than camera
 handles.exposureGap = 0;
 handles.plotLookback = 10;
 handles.settingsGroup = 'FIPGUI';
@@ -116,7 +117,7 @@ set(handles.callback_txt, 'String', getpref(grp, 'callback_txt', get(handles.cal
 
 % Setup DAQ
 rate = str2double(get(handles.rate_txt, 'String'));
-fs = rate * 10;
+fs = rate * handles.sample_rate_factor;
 devices = daq.getDevices();
 device = devices(1);
 handles.dev = device;
@@ -723,7 +724,7 @@ function rate_txt_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of rate_txt as text
 %        str2double(get(hObject,'String')) returns contents of rate_txt as a double
 rate = str2double(get(handles.rate_txt,'String'));
-fs = rate * 10;
+fs = rate * handles.sample_rate_factor;
 set(handles.s, 'Rate', fs);
 set(handles.camCh, 'Frequency', rate);
 set(handles.refCh, 'Frequency', rate / 2);
