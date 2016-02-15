@@ -3,7 +3,7 @@ A minimal GUI for doing frame-projected independent-fiber photometry
 
 See [paper in Nature Methods](http://www.nature.com/nmeth/journal/vaop/ncurrent/full/nmeth.3770.html) for details:
 
-Kim, C.*, Yang, S.*, Pichamoorthy, N., Young, N., Kauvar, I., Jennings, J., Lerner, T., Berndt, A., Lee, S.Y., Ramakrishnan, C., Davidson, T., Inoue, M., Bito, H., & Deisseroth, K. (2016). Simultaneous fast measurement of circuit dynamics at multiple sites across the mammalian brain. Nature Methods. 
+Kim, C., Yang, S., Pichamoorthy, N., Young, N., Kauvar, I., Jennings, J., Lerner, T., Berndt, A., Lee, S.Y., Ramakrishnan, C., Davidson, T., Inoue, M., Bito, H., & Deisseroth, K. (2016). Simultaneous fast measurement of circuit dynamics at multiple sites across the mammalian brain. Nature Methods. 
 
 ## Background
 Frame-projected independent-fiber photometry records the sum fluorescence from each of several optical fibers by imaging the fiber bundle onto a camera sensor and digitally cropping and summing the fluorescence from each fiber. Alternating excitation wavelengths for successive frames enables concurrent sampling of multiple spectral channels and/or optical stimulation.
