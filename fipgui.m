@@ -728,7 +728,7 @@ fs = rate * handles.sample_rate_factor;
 set(handles.s, 'Rate', fs);
 set(handles.camCh, 'Frequency', rate);
 set(handles.refCh, 'Frequency', rate / 2);
-set(handles.sigCh, 'InitialDelay', 1 / rate * 0.05);
+set(handles.refCh, 'InitialDelay', 1 / rate * 0.05);
 set(handles.sigCh, 'Frequency', rate / 2);
 set(handles.sigCh, 'InitialDelay', 1 / rate * 1.05);
 
