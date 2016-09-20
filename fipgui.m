@@ -96,20 +96,20 @@ catch e
 end
 rate_txt = getpref(grp, 'rate_txt', get(handles.rate_txt, 'String'));
 if isnan(str2double(rate_txt))
-    rate_txt = '10'; 
+    rate_txt = '10';
     warning(['Invalid rate text, setting to default value of ' rate_txt]);
 end
 set(handles.rate_txt, 'String', rate_txt);
 set(handles.cam_pop, 'Value', getpref(grp, 'cam_pop', get(handles.cam_pop, 'Value')));
 save_txt =  getpref(grp, 'save_txt', get(handles.save_txt, 'String'));
-if numel(save_txt) > 1 && save_txt(1) == '0' 
-    save_txt = ''; 
+if numel(save_txt) > 1 && save_txt(1) == '0'
+    save_txt = '';
     warning(['Invalid save text, setting to default value of ' save_txt]);
 end
 set(handles.save_txt, 'String',save_txt);
 ao_waveform_txt =  getpref(grp, 'ao_waveform_txt', get(handles.ao_waveform_txt, 'String'));
-if numel(ao_waveform_txt) > 1 && ao_waveform_txt(1) == '0' 
-    ao_waveform_txt = '<None>';     
+if numel(ao_waveform_txt) > 1 && ao_waveform_txt(1) == '0'
+    ao_waveform_txt = '<None>';
     warning(['Invalid ao waveform text, setting to default value of ' ao_waveform_txt]);
 end
 set(handles.ao_waveform_txt, 'String',ao_waveform_txt);
@@ -152,27 +152,10 @@ catch e
 end
 
 % Enable analog input logging
-ch = addAnalogInputChannel(s,handles.dev.ID,[0:7], 'Voltage');        
+ch = addAnalogInputChannel(s,handles.dev.ID,[0:7], 'Voltage');
 lh = addlistener(s, 'DataAvailable', @(src, event) 0); % add a dummy listener
 disp(['(optional for logging) Analog inputs should be connected to ai0 - ai7']);
 
-% Enable analog output
-ao0=addAnalogOutputChannel(s,handles.dev.ID,'ao0', 'Voltage');
-ao1=addAnalogOutputChannel(s,handles.dev.ID,'ao1', 'Voltage');
-ao2=addAnalogOutputChannel(s,handles.dev.ID,'ao2', 'Voltage');
-ao3=addAnalogOutputChannel(s,handles.dev.ID,'ao3', 'Voltage');
-disp(['(optional) Analog outputs should be connected to ao0 - ao3']);
-% This listener is enabled later if analog outputs are not used, and will
-% continuously set the outputs to zero.
-lh_ao=addlistener(s,'DataRequired', @load_zero_valued_ao_data);     
-
-% Workaround for s.IsRunning bug. (see main acquisition for details)
-% Load and send a short AO waveform.
-load_zero_valued_ao_data(s,''); 
-s.startBackground();
-stop(s);
-
-handles.lh_ao=lh_ao;
 handles.camCh = camCh;
 handles.refCh = refCh;
 handles.sigCh = sigCh;
@@ -182,7 +165,7 @@ handles.s = s;
 camDeviceN = get(handles.cam_pop, 'Value');
 vid = videoinput(adaptors{camDeviceN}, IDs(camDeviceN), formats{camDeviceN});
 src = getselectedsource(vid);
-vid.FramesPerTrigger = 1; 
+vid.FramesPerTrigger = 1;
 vid.TriggerRepeat = Inf;
 vid.ROIPosition = [0 0 vid.VideoResolution];
 
@@ -207,6 +190,7 @@ if strcmp(basename, '<None>')
 else
     handles.callback = str2func(basename);
 end
+
 % Update analog output waveform
 [pathname, filename, ext] = fileparts(get(handles.ao_waveform_txt, 'String'));
 [~, basename, ext] = fileparts(filename);
@@ -233,7 +217,7 @@ update_camera_exposure_time(handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = fipgui_OutputFcn(hObject, eventdata, handles) 
+function varargout = fipgui_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -268,7 +252,6 @@ res = get(handles.vid, 'VideoResolution');
 frames = zeros(res(1), res(2), nFrames);
 set(handles.vid, 'ROIPosition', [0 0 res]);
 
-load_analog_output_data(handles, true);
 triggerconfig(handles.vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
 start(handles.vid);
 startBackground(handles.s);
@@ -341,35 +324,40 @@ if length(unique(ports)) < length(ports)
 end
 
 % Analog output data must be loaded before a session is started
-function load_analog_output_data(handles, disable_ao_out)    
+function load_analog_output_data(handles, disable_ao_out)
     if disable_ao_out
         analog_output_waveform_enabled = false;
     else
-        analog_output_waveform_enabled = handles.ao_waveform_path; 
+        analog_output_waveform_enabled = handles.ao_waveform_path;
     end
     if analog_output_waveform_enabled
-        disp('Loading user defined AO output');        
-        user_waveform = load_user_ao_waveform(handles);        
+        disp('Loading user defined AO output');
+
+        % Enable analog output
+        ao0=addAnalogOutputChannel(s,handles.dev.ID,'ao0', 'Voltage');
+        ao1=addAnalogOutputChannel(s,handles.dev.ID,'ao1', 'Voltage');
+        ao2=addAnalogOutputChannel(s,handles.dev.ID,'ao2', 'Voltage');
+        ao3=addAnalogOutputChannel(s,handles.dev.ID,'ao3', 'Voltage');
+        disp(['(optional) Analog outputs should be connected to ao0 - ao3']);
+
+        user_waveform = load_user_ao_waveform(handles);
         disp(['AO waveform duration: ' num2str(size(user_waveform,1)/handles.s.Rate) ' seconds']);
-        handles.lh_ao.Enabled = false;        
-        queueOutputData(handles.s,user_waveform);        
+        queueOutputData(handles.s,user_waveform);
     else
-        handles.lh_ao.Enabled = true;
-        disp('Setting all analog output values to 0 V');
-        load_zero_valued_ao_data(handles.s,'');        
+        disp('Leaving AO unset');
     end
- 
+
 % Verify user waveform is valid
 function verify_user_ao_waveform(handles)
     disp('Verifying AO waveform.');
     load_user_ao_waveform(handles);
-    
+
 % Load a user specified AO waveform
 % A valid analog output waveform .mat file must contain two variables:
 %   rate - int. samples per second, must match handles.s.Rate
 %   waveform - (N x 4) vector of voltage values
 function user_waveform = load_user_ao_waveform(handles)
-    t = load(fullfile(handles.ao_waveform_path, handles.ao_waveform_file));    
+    t = load(fullfile(handles.ao_waveform_path, handles.ao_waveform_file));
     user_waveform = 0;
     if t.rate ~= handles.s.Rate
         error(['Waveform rate ' num2str(t.rate) ' does not match daq rate ' num2str(handles.s.Rate)]);
@@ -378,16 +366,11 @@ function user_waveform = load_user_ao_waveform(handles)
             user_waveform = t.waveform;
         else
             error(['Waveform has ' num2str(size(t.waveform,2)) ' channels instead of 4.']);
-        end        
-    end    
+        end
+    end
     if max(abs(user_waveform(:))) > 10
         error('AO output waveform must be between +/- 10 V');
     end
-    
-% Call back function to load zero valued AO data 
-function load_zero_valued_ao_data(src, event)
-    % minimum output is 0.5s of samples, for 4 channels
-    src.queueOutputData(zeros(5000,4));
 
 % --- Executes on button press in acquire_tgl.
 function acquire_tgl_Callback(hObject, eventdata, handles)
@@ -401,9 +384,9 @@ if state
     % Pre-check for valid analog output waveform
     if handles.ao_waveform_path
         verify_user_ao_waveform(handles);
-    end    
-    verify_callback_function(handles);    
-    
+    end
+    verify_callback_function(handles);
+
     % Disable all settings
     confControls = [
         handles.camport_pop
@@ -425,21 +408,21 @@ if state
     for control = confControls
         set(control, 'Enable', 'off');
     end
-    
+
     % Re-label button
     set(hObject, 'String', 'Stop acquisition');
-    
+
     if settings_are_valid(handles)
         % Get save paths
         [sigFile, refFile, calibFile, logAIFile] = get_save_paths(handles);
-        
+
         if(ai_logging_is_enabled(handles))
-            % Add listener for analog input logging        
+            % Add listener for analog input logging
             lh = addlistener(handles.s, 'DataAvailable', @(src, event) logAIData(src, event, logAIFile));
             handles.s.NotifyWhenDataAvailableExceeds = round(handles.s.Rate*1);
             disp('Added analog input channels and listener');
         end
-        
+
         % Snap a quick dark frame
         darkframe = getsnapshot(handles.vid);
 
@@ -449,7 +432,7 @@ if state
         else
             darkOffset = applyMasks(handles.masks, darkframe);
         end
-        
+
         nMasks = size(handles.masks, 3);
         ref = zeros(1, nMasks); sig = zeros(1, nMasks);
         i = 0;
@@ -495,9 +478,9 @@ if state
         triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
         load_analog_output_data(handles, false);
         start(vid);
-        
+
         s.startBackground();
-        
+
         handles.startTime = now();
 
         % Stop if value is set to false, or if the user-specified AO
@@ -507,20 +490,20 @@ if state
         else
             disp('Waiting for user to end acquisition...');
         end
-        while get(hObject,'Value') 
-            
-            if ~ s.IsRunning                
+        while get(hObject,'Value')
+
+            if ~ s.IsRunning
                 disp('AO waveform output finished.');
-                set(hObject,'Value', false); % Exit loop if AO output just finished                
-                break            
-            end 
-                        
+                set(hObject,'Value', false); % Exit loop if AO output just finished
+                break
+            end
+
             try
                 img = getdata(vid, 1, 'uint16');
             catch e
-                % Most likely cause for getting here is the s.IsRunning bug: 
+                % Most likely cause for getting here is the s.IsRunning bug:
                 %   without the workaround implemented above in init, the very
-                %   first acquisition, if AO is enabled, will fail to stop 
+                %   first acquisition, if AO is enabled, will fail to stop
                 %   (s.IsRunning is True indefinitely despite the waveform
                 %   having stopped). As a side effect, the synchronization
                 %   of the AO waveform and digital counter channels appears
@@ -532,10 +515,10 @@ if state
                 set(hObject,'Value', false); % Exit loop if AO output just finished
                 break
             end
-            
+
             i = i + 1;      % frame number
-            j = ceil(i/2);  % sig/ref pair number                        
-            
+            j = ceil(i/2);  % sig/ref pair number
+
             avgs = applyMasks(handles.masks, img);
             avgs = avgs - darkOffset;
 
@@ -560,10 +543,10 @@ if state
                 for k = 1:nMasks
                     sigmin = min(sig(max(1, j-framesback):jboth,k));
                     sigmax = max(sig(max(1, j-framesback):jboth,k));
-                    
+
                     refmin = min(ref(max(1, j-framesback):jboth,k));
                     refmax = max(ref(max(1, j-framesback):jboth,k));
-                    
+
                     if sigmax > sigmin
                         ylim(yyaxes(k,1), [sigmin sigmax]);
                     end
@@ -575,12 +558,12 @@ if state
                     set(lyy(k,2), 'XData', tnow, 'YData', ref(max(1, j-framesback):jboth,k));
                 end
             end
-                       
+
             % Check to make sure camera acquisition is keeping up.
             elapsed_time = (now() - handles.startTime());
-            rate = str2double(get(handles.rate_txt,'String'));            
+            rate = str2double(get(handles.rate_txt,'String'));
             if abs(elapsed_time*24*3600 - (i)/rate) > 1 % if camera acquisition falls behind more than 1 s...
-                fraction_frames_acquired = i/(elapsed_time*24*3600*rate);                
+                fraction_frames_acquired = i/(elapsed_time*24*3600*rate);
                 if j > 0
                     disp(['fraction of frames acquired: ' num2str(fraction_frames_acquired)]);
                     if abs(fraction_frames_acquired - 0.5) < 0.04
@@ -595,7 +578,7 @@ if state
             set(handles.elapsed_txt, 'String', datestr(elapsed_time, 'HH:MM:SS'));
         end
         disp('...acquisition complete.');
-         
+
         % Stop acquisition
         stop(vid);
         s.stop();
@@ -607,20 +590,20 @@ if state
         % Save data
         if j > 0
             save_data(sig(1:j,:), ref(1:j,:), handles.calibImg.cdata, sigFile, refFile, calibFile);
-        else            
+        else
             warning(['No frames captured or saved! Check camera trigger connection is ' handles.camCh.Terminal '. Then restart MATLAB.']); beep;
         end
-        
+
     end % end settings are valid check
-    
+
     % Make the old plots closeable
     set(plot_fig, 'CloseRequestFcn', @closeable);
-    
+
     % Re-enable all controls
     for control = confControls
         set(control, 'Enable', 'on');
     end
-    
+
     % Re-label button
     set(hObject, 'String', 'Acquire data');
 end
@@ -788,7 +771,7 @@ rate = str2double(get(handles.rate_txt, 'String'));
 camDeviceN = get(hObject, 'Value');
 vid = videoinput(adaptors{camDeviceN}, IDs(camDeviceN), formats{camDeviceN});
 src = getselectedsource(vid);
-vid.FramesPerTrigger = 1; 
+vid.FramesPerTrigger = 1;
 vid.TriggerRepeat = Inf;
 
 handles.vid = vid;
