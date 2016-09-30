@@ -182,7 +182,24 @@ handles.savefile = [filename ext];
 
 % Update callback file information
 [pathname, filename] = fileparts(get(handles.callback_txt, 'String'));
-install_callback(handles, pathname, filename);
+if handles.callback_path
+    rmpath(handles.callback_path);
+end
+addpath(pathname);
+handles.callback_path = pathname;
+[~, basename, ext] = fileparts(filename);
+
+if strcmp(basename, '<None>') || strcmp(basename, '')
+    handles.callback = @(x,y) false;
+elseif exist(basename, 'class') > 0
+    constructor = str2func(basename);
+    obj = constructor();
+    handles.callback = @obj.update;
+else
+    handles.callback = str2func(basename);
+end
+
+set(handles.callback_txt, 'String', fullfile(pathname, filename));
 
 % Update analog output waveform
 [pathname, filename, ext] = fileparts(get(handles.ao_waveform_txt, 'String'));
@@ -837,7 +854,24 @@ function callback_btn_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 [filename, pathname] = uigetfile('', 'Select a .m function file');
-install_callback(handles, filename, pathname);
+if handles.callback_path
+    rmpath(handles.callback_path);
+end
+addpath(pathname);
+handles.callback_path = pathname;
+[~, basename, ext] = fileparts(filename);
+
+if strcmp(basename, '<None>') || strcmp(basename, '')
+    handles.callback = @(x,y) false;
+elseif exist(basename, 'class') > 0
+    constructor = str2func(basename);
+    obj = constructor();
+    handles.callback = @obj.update;
+else
+    handles.callback = str2func(basename);
+end
+
+set(handles.callback_txt, 'String', fullfile(pathname, filename));
 
 % Update handles structure
 guidata(hObject, handles);
@@ -865,7 +899,24 @@ function callback_txt_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of callback_txt as text
 %        str2double(get(hObject,'String')) returns contents of callback_txt as a double
 [path, file, ext] = fileparts(get(hObject, 'String'));
-install_callback(handles, strcat(file, ext), path);
+if handles.callback_path
+    rmpath(handles.callback_path);
+end
+addpath(pathname);
+handles.callback_path = pathname;
+[~, basename, ext] = fileparts(filename);
+
+if strcmp(basename, '<None>') || strcmp(basename, '')
+    handles.callback = @(x,y) false;
+elseif exist(basename, 'class') > 0
+    constructor = str2func(basename);
+    obj = constructor();
+    handles.callback = @obj.update;
+else
+    handles.callback = str2func(basename);
+end
+
+set(handles.callback_txt, 'String', fullfile(pathname, filename));
 
 % Update handles structure
 guidata(hObject, handles);
@@ -971,28 +1022,6 @@ plotLogFile(handles.savepath, true);
 
 
 
-function install_callback(handles, fname, path)
-% Set up the callback function or class at the given path
-if handles.callback_path
-    rmpath(handles.callback_path);
-end
-addpath(pathname);
-handles.callback_path = pathname;
-[~, basename, ext] = fileparts(filename);
-
-if strcmp(basename, '<None>')
-    handles.callback = @(x,y) false;
-elseif exist(basename, 'class') > 0
-    constructor = str2func(basename);
-    obj = constructor();
-    handles.callback = obj.update;
-else
-    handles.callback = str2func(basename);
-end
-
-set(handles.callback_txt, 'String', fullfile([pathname filename]));
-
-
 function update_camera_exposure_time(handles)
 rate = str2double(get(handles.rate_txt, 'String'));
 handles.src.ExposureTime = 1 / rate - handles.exposureGap;
@@ -1015,5 +1044,5 @@ is_enabled = get(handles.ai_logging_check,'Value');
 
 function verify_callback_function(handles)
 if handles.callback_path
-    handles.callback(0,'test');
+    handles.callback(0, 'test');
 end

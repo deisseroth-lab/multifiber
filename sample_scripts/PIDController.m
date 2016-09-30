@@ -1,4 +1,4 @@
-classdef PIDController
+classdef PIDController < handle
     properties (Access = public)
         P
         I
@@ -6,7 +6,7 @@ classdef PIDController
         setpt
     end
 
-    properties (Acesss = private)
+    properties (Access = private)
         Iaccumulator
         prev_t
         prev_err
@@ -23,7 +23,7 @@ classdef PIDController
             PID.prev_err = 0;
         end
 
-        function update(PID, val, t)
+        function final = update(PID, val, t)
             err = val - setpt;
             final = err; % P-term
             if PID.prev_t
@@ -34,5 +34,6 @@ classdef PIDController
             end
             PID.prev_t = t;
             PID.prev_err = err;
-            return final;
         end
+    end
+end

@@ -1,19 +1,18 @@
-classdef FeedbackHandler
+classdef FeedbackHandler < handle
     properties(GetAccess = private, SetAccess = private)
         session
         ao_ch
         pulse
         flat
         pid
-        ctrl_signal
-        basepos
-        baselim = 200
-        base
         setpt = 0
     end
 
     properties(GetAccess = public, SetAccess = public)
-        % none yet
+        basepos = 0;
+        baselim = 200
+        base
+        ctrl_signal
     end
 
 
@@ -55,7 +54,9 @@ classdef FeedbackHandler
         
         function update_baseline(obj, data)
             obj.basepos = obj.basepos + 1;
+            disp(['updating basepos to ' int2str(obj.basepos)]);
             obj.base(obj.basepos, 1) = data;
+        end
 
         function update(obj, data, channel)
     	    % Handle fiber fluorescence intensity data from the analog inputs
@@ -63,11 +64,13 @@ classdef FeedbackHandler
             % than `update`, so just remember the last control signal output by
             % the PID.
             if strcmp(channel, 'signal')
+                disp('updating signal');
                 m = mean(data);
                 if obj.setpt == 0
                     obj.update_baseline(m)
                     if obj.basepos == obj.baselim
                         obj.setpt = mean(obj.base);
+                        disp('Establishing set point');
                     end
                 else
                     obj.ctrl_signal = obj.pid.update(m, now * 24 * 3600);
@@ -82,7 +85,7 @@ classdef FeedbackHandler
             % and using the output the rate parameter through a nonlearity and
             % random variable
             nonlinearity = 1 / (1 + exp(-obj.ctrl_signal));
-            if rand(1) < nonlinearity &  
+            if rand(1) < nonlinearity && obj.setpt ~= 0
                 src.queueOutputData(obj.pulse);
             else
                 src.queueOutputData(obj.flat);
