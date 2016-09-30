@@ -182,14 +182,7 @@ handles.savefile = [filename ext];
 
 % Update callback file information
 [pathname, filename] = fileparts(get(handles.callback_txt, 'String'));
-addpath(pathname);
-handles.callback_path = pathname;
-[~, basename, ext] = fileparts(filename);
-if strcmp(basename, '<None>')
-    handles.callback = @(x,y) false;
-else
-    handles.callback = str2func(basename);
-end
+install_callback(handles, pathname, filename);
 
 % Update analog output waveform
 [pathname, filename, ext] = fileparts(get(handles.ao_waveform_txt, 'String'));
@@ -211,9 +204,6 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 update_camera_exposure_time(handles);
-
-% UIWAIT makes fipgui wait for user response (see UIRESUME)
-% uiwait(handles.fipgui);
 
 
 % --- Outputs from this function are returned to the command line.
@@ -238,6 +228,7 @@ snapframe = getsnapshot(handles.vid);
 figure();
 imagesc(snapframe);
 colorbar();
+
 
 % --- Executes on button press in calibframe_btn.
 function calibframe_btn_Callback(hObject, eventdata, handles)
@@ -755,9 +746,7 @@ disp(['Camera should be connected to ' handles.camCh.Terminal]);
 % Update handles structure
 guidata(hObject, handles);
 
-function update_camera_exposure_time(handles)
-   rate = str2double(get(handles.rate_txt, 'String'));
-   handles.src.ExposureTime = 1 / rate - handles.exposureGap;
+
 function cam_pop_Callback(hObject, eventdata, handles)
 % hObject    handle to cam_pop (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -848,14 +837,7 @@ function callback_btn_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 [filename, pathname] = uigetfile('', 'Select a .m function file');
-if handles.callback_path
-    rmpath(handles.callback_path);
-end
-addpath(pathname);
-handles.callback_path = pathname;
-[~, basename, ext] = fileparts(filename);
-handles.callback = str2func(basename);
-set(handles.callback_txt, 'String', fullfile([pathname filename]));
+install_callback(handles, filename, pathname);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -883,20 +865,12 @@ function callback_txt_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of callback_txt as text
 %        str2double(get(hObject,'String')) returns contents of callback_txt as a double
 [path, file, ext] = fileparts(get(hObject, 'String'));
-if handles.callback_path
-    rmpath(handles.callback_path);
-end
-addpath(path);
-handles.callback_path = path;
-handles.callback = str2func(file);
+install_callback(handles, strcat(file, ext), path);
 
 % Update handles structure
 guidata(hObject, handles);
 
-function verify_callback_function(handles)
-    if handles.callback_path
-        handles.callback(0,'test');
-    end
+
 % --- Executes on button press in callback_clear_btn.
 function callback_clear_btn_Callback(hObject, eventdata, handles)
 % hObject    handle to callback_clear_btn (see GCBO)
@@ -930,15 +904,6 @@ setpref(grp, 'ai_logging_check', get(handles.ai_logging_check, 'Value'));
 
 % Hint: delete(hObject) closes the figure
 delete(hObject);
-
-function uncloseable(src, callbackdata)
-% A dummy function that makes it impossible to close if used as the
-% CloseRequestFcn
-return
-
-function closeable(src, callbackdata)
-% Does the right thing (closes the figure) if used as the CloseRequestFcn
-delete(src);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -1005,12 +970,50 @@ function viewlog_btn_Callback(hObject, eventdata, handles)
 plotLogFile(handles.savepath, true);
 
 
-% --- Executes on button press in ai_logging_check.
-function ai_logging_check_Callback(hObject, eventdata, handles)
-% hObject    handle to ai_logging_check (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of ai_logging_check
+function install_callback(handles, fname, path)
+% Set up the callback function or class at the given path
+if handles.callback_path
+    rmpath(handles.callback_path);
+end
+addpath(pathname);
+handles.callback_path = pathname;
+[~, basename, ext] = fileparts(filename);
+
+if strcmp(basename, '<None>')
+    handles.callback = @(x,y) false;
+elseif exist(basename, 'class') > 0
+    constructor = str2func(basename);
+    obj = constructor();
+    handles.callback = obj.update;
+else
+    handles.callback = str2func(basename);
+end
+
+set(handles.callback_txt, 'String', fullfile([pathname filename]));
+
+
+function update_camera_exposure_time(handles)
+rate = str2double(get(handles.rate_txt, 'String'));
+handles.src.ExposureTime = 1 / rate - handles.exposureGap;
+   
+   
+function uncloseable(src, callbackdata)
+% A dummy function that makes it impossible to close if used as the
+% CloseRequestFcn
+return
+
+
+function closeable(src, callbackdata)
+% Does the right thing (closes the figure) if used as the CloseRequestFcn
+delete(src);
+
+
 function is_enabled = ai_logging_is_enabled(handles)
-    is_enabled = get(handles.ai_logging_check,'Value');
+is_enabled = get(handles.ai_logging_check,'Value');
+
+
+function verify_callback_function(handles)
+if handles.callback_path
+    handles.callback(0,'test');
+end
