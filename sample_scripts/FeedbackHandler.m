@@ -6,6 +6,9 @@ classdef FeedbackHandler
         flat
         pid
         ctrl_signal
+        basepos
+        baselim = 200
+        base
         setpt = 0
     end
 
@@ -16,6 +19,10 @@ classdef FeedbackHandler
 
     methods
         function obj = FeedBackHandler()
+            % Set up recording of baseline
+            obj.base = zeros(obj.baselim, 1);
+            obj.basepos = 0;
+            
             % Set up a PID loop
             pid = PIDController(0.001, 0.0005, 0.0005);
 
@@ -45,6 +52,10 @@ classdef FeedbackHandler
             obj.setpt = pt;
             obj.pid.setpt = pt;
         end
+        
+        function update_baseline(obj, data)
+            obj.basepos = obj.basepos + 1;
+            obj.base(obj.basepos, 1) = data;
 
         function update(obj, data, channel)
     	    % Handle fiber fluorescence intensity data from the analog inputs
@@ -52,7 +63,15 @@ classdef FeedbackHandler
             % than `update`, so just remember the last control signal output by
             % the PID.
             if strcmp(channel, 'signal')
-                obj.ctrl_signal = obj.pid.update(data, now / 24 / 3600);
+                m = mean(data);
+                if obj.setpt == 0
+                    obj.update_baseline(m)
+                    if obj.basepos == obj.baselim
+                        obj.setpt = mean(obj.base);
+                    end
+                else
+                    obj.ctrl_signal = obj.pid.update(m, now * 24 * 3600);
+                end
             end
         end
 
@@ -63,7 +82,7 @@ classdef FeedbackHandler
             % and using the output the rate parameter through a nonlearity and
             % random variable
             nonlinearity = 1 / (1 + exp(-obj.ctrl_signal));
-            if rand(1) < nonlinearity
+            if rand(1) < nonlinearity &  
                 src.queueOutputData(obj.pulse);
             else
                 src.queueOutputData(obj.flat);
