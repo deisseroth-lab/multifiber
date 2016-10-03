@@ -1,26 +1,26 @@
 classdef PIDController < handle
     properties (Access = public)
-        P
-        I
-        D
-        setpt
+        P = 0
+        I = 0
+        D = 0
+        setpt = 0
     end
 
     properties (Access = private)
-        Iaccumulator
-        prev_t
-        prev_err
+        Iaccumulator = 0
+        prev_t = -1
+        prev_err = 0
     end
 
     methods
+        function PID = PIDController()
+            % pass
+        end
+        
         function PID = PIDController(P, I, D)
             PID.P = P;
             PID.I = I;
             PID.D = D;
-            PID.setpt = 0;
-            PID.Iaccumulator = 0;
-            PID.prev_t = -1;
-            PID.prev_err = 0;
         end
 
         function final = update(PID, val, t)

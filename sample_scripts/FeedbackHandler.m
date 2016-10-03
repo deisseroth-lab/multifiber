@@ -4,26 +4,29 @@ classdef FeedbackHandler < handle
         ao_ch
         pulse
         flat
-        pid
         setpt = 0
+        gui
     end
 
     properties(GetAccess = public, SetAccess = public)
         basepos = 0;
-        baselim = 200
         base
         ctrl_signal
+        pid
+        setting
     end
 
 
     methods
         function obj = FeedBackHandler()
+            % Set up the feedback GUI
+            obj.gui = pidgui(obj);
+            
             % Set up recording of baseline
             obj.base = zeros(obj.baselim, 1);
-            obj.basepos = 0;
             
             % Set up a PID loop
-            pid = PIDController(0.001, 0.0005, 0.0005);
+            pid = PIDController();
 
             % Define a pulse
             obj.pulse = [1; zeros(9, 1)];
@@ -50,12 +53,19 @@ classdef FeedbackHandler < handle
         function obj = set.setpt(obj, pt)
             obj.setpt = pt;
             obj.pid.setpt = pt;
+            gui.acquire_setpt_btn.Value = str(pt);
         end
         
         function update_baseline(obj, data)
             obj.basepos = obj.basepos + 1;
-            disp(['updating basepos to ' int2str(obj.basepos)]);
-            obj.base(obj.basepos, 1) = data;
+            
+            % Exponentially expanding matrix as per std::vector
+            if obj.basepos > size(obj.base, 1);
+                sz = size(obj.basepos);
+                obj.base = [obj.base; zeros(sz)];
+            end
+            
+            obj.base(obj.basepos,1) = data;
         end
 
         function update(obj, data, channel)
@@ -66,14 +76,14 @@ classdef FeedbackHandler < handle
             if strcmp(channel, 'signal')
                 disp('updating signal');
                 m = mean(data);
-                if obj.setpt == 0
+                if obj.setting
                     obj.update_baseline(m)
-                    if obj.basepos == obj.baselim
-                        obj.setpt = mean(obj.base);
-                        disp('Establishing set point');
-                    end
                 else
                     obj.ctrl_signal = obj.pid.update(m, now * 24 * 3600);
+                    obj.gui.ctrlsig_txt.Value = str(obj.ctrl_signal);
+                    obj.gui.pterm_txt.Value = str(obj.pid.P);
+                    obj.gui.iterm_txt.Value = str(obj.pid.I);
+                    obj.gui.dterm_txt.Value = str(obj.pid.D);
                 end
             end
         end
@@ -85,6 +95,7 @@ classdef FeedbackHandler < handle
             % and using the output the rate parameter through a nonlearity and
             % random variable
             nonlinearity = 1 / (1 + exp(-obj.ctrl_signal));
+            obj.gui.ctrlrate_txt.Value = str(nonlinearity);
             if rand(1) < nonlinearity && obj.setpt ~= 0
                 src.queueOutputData(obj.pulse);
             else
