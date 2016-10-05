@@ -7,14 +7,13 @@ classdef PIDHandler < handle
         baseline
         last_data = -1
         gui
-        setpt_cache = [];
-        last_ctrl_signal = 0;
-        ctrl_signal_buffer;
+        last_ctrl_signal = 0
+        ctrl_signal_buffer
+        acquiring_baseline = false
     end
-    
+
     properties(GetAccess = public, SetAccess = public)
         pid
-        acquiring_baseline = false
     end
 
     methods
@@ -22,13 +21,13 @@ classdef PIDHandler < handle
             % Set up PID control
             obj.pid = PIDController();
             obj.ctrl_signal_buffer = Vec();
-            
+
             % Set up baseline capturing
             obj.baseline = Vec();
-            
+
             % Set up the GUI
             obj.gui = pidgui(obj);
-            
+
             % Define a pulse
             obj.pulse = [1; zeros(99, 1)];
             obj.flat = zeros(100, 1);
@@ -40,20 +39,24 @@ classdef PIDHandler < handle
             ch = s.addAnalogOutputChannel(device.ID, 0, 'Voltage');
             s.Rate = 1000;
             s.IsContinuous = true;
-            s.addlistener('DataRequired', @obj.provide);  
+            s.addlistener('DataRequired', @obj.provide);
 
             % Save locals to instance
             obj.session = s;
             obj.ao_ch = ch;
         end
-        
+
         function stop(obj)
             obj.session.stop();
         end
-        
-        function establish_baseline(obj)
-            obj.pid.setpt = obj.baseline.mean();
+
+        function reset_baseline(obj)
             obj.baseline = Vec();
+            obj.acquiring_baseline = true;
+
+        function establish_baseline(obj)
+            obj.acquiring_baseline = false;
+            obj.pid.setpt = obj.baseline.mean();
 
         function update(obj, data, channel)
     	    % Handle fiber fluorescence intensity data from the analog inputs
@@ -66,7 +69,7 @@ classdef PIDHandler < handle
                 s.queueOutputData(repmat(obj.flat, 5, 1));
                 s.startBackground();
             end
-            
+
             if strcmp(channel, 'signal')
                 if obj.acquiring_baseline
                     obj.baseline.append(mean(data));
@@ -88,14 +91,14 @@ classdef PIDHandler < handle
                 disp('No new data for 1 second, assuming recording is over');
                 obj.stop();
             end
-            
+
             if obj.ctrl_signal_buffer.length > 0
                 ctrl_signal = obj.ctrl_signal_buffer.mean();
                 obj.last_ctrl_signal = ctrl_signal;
             else
                 ctrl_signal = obj.last_ctrl_signal;
             end
-            
+
             nonlinearity = 1 / (1 + exp(ctrl_signal));
             disp(['P = ' num2str(nonlinearity)]);
             if rand(1) < nonlinearity

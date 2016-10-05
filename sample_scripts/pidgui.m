@@ -65,7 +65,7 @@ guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = pidgui_OutputFcn(hObject, eventdata, handles) 
+function varargout = pidgui_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -227,8 +227,7 @@ function acquire_setpt_btn_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of acquire_setpt_btn
 
 if get(hObject,'Value')
-    handles.handler.setting = 1;
+    handles.handler.reset_baseline();
 else
-    handles.handler.setting = 0;
-    handles.handler.setpt = mean(handles.handler.base(1:handles.handler.basepos,1));
+    handles.handler.establish_baseline();
 end
