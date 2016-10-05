@@ -1,15 +1,34 @@
-classdef FeedbackHandler < handle
+classdef PIDHandler < handle
     properties(GetAccess = private, SetAccess = private)
         session
         ao_ch
         pulse
         flat
-        recent = [] 
+        baseline
         last_data = -1
+        gui
+        setpt_cache = [];
+        last_ctrl_signal = 0;
+        ctrl_signal_buffer;
+    end
+    
+    properties(GetAccess = public, SetAccess = public)
+        pid
+        acquiring_baseline = false
     end
 
     methods
-        function obj = FeedbackHandler()
+        function obj = PIDHandler()
+            % Set up PID control
+            obj.pid = PIDController();
+            obj.ctrl_signal_buffer = Vec();
+            
+            % Set up baseline capturing
+            obj.baseline = Vec();
+            
+            % Set up the GUI
+            obj.gui = pidgui(obj);
+            
             % Define a pulse
             obj.pulse = [1; zeros(99, 1)];
             obj.flat = zeros(100, 1);
@@ -31,6 +50,10 @@ classdef FeedbackHandler < handle
         function stop(obj)
             obj.session.stop();
         end
+        
+        function establish_baseline(obj)
+            obj.pid.setpt = obj.baseline.mean();
+            obj.baseline = Vec();
 
         function update(obj, data, channel)
     	    % Handle fiber fluorescence intensity data from the analog inputs
@@ -45,7 +68,12 @@ classdef FeedbackHandler < handle
             end
             
             if strcmp(channel, 'signal')
-                obj.recent = [obj.recent mean(data)];
+                if obj.acquiring_baseline
+                    obj.baseline.append(mean(data));
+                else
+                    ctrl_signal = obj.pid.update(mean(data));
+                    obj.ctrl_signal_buffer.append(ctrl_signal);
+                end
             end
         end
 
@@ -57,16 +85,18 @@ classdef FeedbackHandler < handle
             % random variable
             if obj.last_data > 0 && (now - obj.last_data) / 24 / 3600 > 1
                 % Assume we stopped recording
+                disp('No new data for 1 second, assuming recording is over');
                 obj.stop();
             end
             
-            if length(obj.recent) > 0
-                x = mean(obj.recent);
-                obj.recent = [];
+            if obj.ctrl_signal_buffer.length > 0
+                ctrl_signal = obj.ctrl_signal_buffer.mean();
+                obj.last_ctrl_signal = ctrl_signal;
             else
-                x = 0;
+                ctrl_signal = obj.last_ctrl_signal;
             end
-            nonlinearity = 1 / (1 + exp(x));
+            
+            nonlinearity = 1 / (1 + exp(ctrl_signal));
             disp(['P = ' num2str(nonlinearity)]);
             if rand(1) < nonlinearity
                 disp('Pulse');
