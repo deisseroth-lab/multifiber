@@ -7,25 +7,27 @@ classdef SimpleHandler < handle
     end
 
     methods
-        function obj = FeedBackHandler()
+        function obj = SimpleHandler()
             % Define a pulse
-            obj.pulse = [1; zeros(9, 1)];
-            obj.flat = zeros(10, 1);
+            obj.pulse = [1; zeros(99, 1)];
+            obj.flat = zeros(100, 1);
 
             % Set up the analog output
             s = daq.createSession('ni');
-            daq.getDevices();
+            devices = daq.getDevices();
             device = devices(1);
             ch = s.addAnalogOutputChannel(device.ID, 0, 'Voltage');
-            s.Rate = 100;
-            s.addlistener('DataRequired', @obj.provide);
-            
-            % Start outputting
-            s.startBackground();
+            s.Rate = 1000;
+            s.IsContinuous = true;
+            s.addlistener('DataRequired', @obj.provide);  
 
             % Save locals to instance
             obj.session = s;
             obj.ao_ch = ch;
+        end
+        
+        function stop(obj)
+            obj.session.stop();
         end
 
         function update(obj, data, channel)
@@ -33,8 +35,15 @@ classdef SimpleHandler < handle
             % It is safe to assume that `provide` will be called more frequently
             % than `update`, so just remember the last control signal output by
             % the PID.
+            s = obj.session;
+            if ~s.IsRunning
+                % Start outputting
+                s.queueOutputData(repmat(obj.flat, 5, 1));
+                s.startBackground();
+            end
+            
             if strcmp(channel, 'signal')
-                obj.ctrl_signal = 0;
+                disp('New data');
             end
         end
 
@@ -44,8 +53,8 @@ classdef SimpleHandler < handle
             % Decide if we need a pulse by chcking the current PID loop output
             % and using the output the rate parameter through a nonlearity and
             % random variable
-            nonlinearity = 1 / (1 + exp(-obj.ctrl_signal));
-            if rand(1) < nonlinearity && obj.setpt ~= 0
+            nonlinearity = 1 / (1 + exp(0));
+            if rand(1) < nonlinearity
                 disp('Pulse');
                 src.queueOutputData(obj.pulse);
             else
