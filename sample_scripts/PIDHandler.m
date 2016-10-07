@@ -2,14 +2,14 @@ classdef PIDHandler < handle
     properties(GetAccess = private, SetAccess = private)
         session
         ao_ch
+        gui
         pulse
         flat
         baseline
+        acquiring_baseline = false
         last_data = -1
-        gui
         last_ctrl_signal = 0
         ctrl_signal_buffer
-        acquiring_baseline = false
     end
 
     properties(GetAccess = public, SetAccess = public)
@@ -53,6 +53,15 @@ classdef PIDHandler < handle
 
         function stop(obj)
             obj.session.stop();
+        end
+        
+        function train = make_pulses(obj, rate)
+            % Supply half a second of data at a time using 10ms pulse
+            % widths. Force duty cycle to be no greater than 50%
+            pw = 10e-3;
+            rate = min(rate, 1 / pw / 2);
+            obj.current_ctrl_rate = rate;
+            train = pulse_train(rate, pw, 0.5, obj.session.Rate);
         end
 
         function reset_baseline(obj)
@@ -108,15 +117,11 @@ classdef PIDHandler < handle
                 ctrl_signal = obj.last_ctrl_signal;
             end
             
-            nonlinearity = 1 / (1 + exp(ctrl_signal));
             obj.current_ctrl_signal = ctrl_signal;
-            obj.current_ctrl_rate = nonlinearity;
+            %nonlinearity = 1 / (1 + exp(ctrl_signal));
+            nonlinearity = max(0, ctrl_signal);
             
-            if rand(1) < nonlinearity
-                src.queueOutputData(obj.pulse);
-            else
-                src.queueOutputData(obj.flat);
-            end
+            src.queueOutputData(obj.make_pulses(nonlinearity));
         end
 	end
 end
