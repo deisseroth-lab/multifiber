@@ -3,7 +3,7 @@ A minimal GUI for doing frame-projected independent-fiber photometry
 
 See [paper in Nature Methods](http://www.nature.com/nmeth/journal/vaop/ncurrent/full/nmeth.3770.html) for details:
 
-Kim, C., Yang, S., Pichamoorthy, N., Young, N., Kauvar, I., Jennings, J., Lerner, T., Berndt, A., Lee, S.Y., Ramakrishnan, C., Davidson, T., Inoue, M., Bito, H., & Deisseroth, K. (2016). Simultaneous fast measurement of circuit dynamics at multiple sites across the mammalian brain. Nature Methods. 
+Kim, C., Yang, S., Pichamoorthy, N., Young, N., Kauvar, I., Jennings, J., Lerner, T., Berndt, A., Lee, S.Y., Ramakrishnan, C., Davidson, T., Inoue, M., Bito, H., & Deisseroth, K. (2016). Simultaneous fast measurement of circuit dynamics at multiple sites across the mammalian brain. Nature Methods.
 
 ## Background
 Frame-projected independent-fiber photometry records the sum fluorescence from each of several optical fibers by imaging the fiber bundle onto a camera sensor and digitally cropping and summing the fluorescence from each fiber. Alternating excitation wavelengths for successive frames enables concurrent sampling of multiple spectral channels and/or optical stimulation.
@@ -33,7 +33,23 @@ Note: It may be possible to modify the software to work with other MATLAB-suppor
 1. In the GUI, select the counter channels to correspond to the physical DAQ connections.
 
 ## Real-time data access
-In the GUI, select a call-back function, e.g. `sample_scripts/sample_callback.m`.
+In the GUI, select a call-back function file, e.g. `sample_scripts/sample_callback.m`.
+This function is expected to have signature `myfunction(data, channel)` where
+`data` is a 1 x n_fibers matrix of the latest intensity values for each fiber
+and `channel` is a string describing what `data` represents. `channel` may take
+on values "signal", "reference", or "test". "test" is used when FIPGUI does
+preliminary checks to make sure everything works before acquiring.
+
+If you would like to maintain state between evaluations of your call-back,
+FIGUI now accepts a Matlab class file to handle data in real time. This can be
+useful if you would like to use state information, such as previous data
+values, in your response to each incoming data value. It also allows you to
+reference useful variables and objects, such as a separate analog channel or
+file handle that you would like to use repeatedly when new data arrives.
+
+Class files used as callbacks must have a zero-argument constructor and a
+function `update(object, data, channel)` which is the function actually called
+when data is available.
 
 ## User-defined analog output voltage waveforms
 Run `sample_generate_ao_waveform.m` or `sample_generate_ao_waveform_stim.m` to produce an example waveform file, then in the GUI, select that waveform `.mat` file.
@@ -54,4 +70,3 @@ The maximum acquisition rate may depend on several factors:
 1. If the GUI crashes during initialization, there may be a problen with the configurations that FIPGUI persists between sessions. Try running
 `rmpref('FIPGUI')` at the Matlab command line and try again.
 1. If the camera acquisition cannot keep up, as a last resort, try increasing `handles.computer_dependent_delay`.
-
