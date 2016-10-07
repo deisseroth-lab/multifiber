@@ -15,6 +15,11 @@ classdef PIDHandler < handle
     properties(GetAccess = public, SetAccess = public)
         pid
     end
+    
+    properties(SetObservable, GetAccess = public, SetAccess = private)
+        current_ctrl_signal = 0
+        current_ctrl_rate = 0
+    end
 
     methods
         function obj = PIDHandler()
@@ -53,10 +58,13 @@ classdef PIDHandler < handle
         function reset_baseline(obj)
             obj.baseline = Vec();
             obj.acquiring_baseline = true;
+        end
 
         function establish_baseline(obj)
             obj.acquiring_baseline = false;
             obj.pid.setpt = obj.baseline.mean();
+            obj.pid.reset_I();
+        end
 
         function update(obj, data, channel)
     	    % Handle fiber fluorescence intensity data from the analog inputs
@@ -71,10 +79,11 @@ classdef PIDHandler < handle
             end
 
             if strcmp(channel, 'signal')
+                obj.last_data = now;
                 if obj.acquiring_baseline
                     obj.baseline.append(mean(data));
                 else
-                    ctrl_signal = obj.pid.update(mean(data));
+                    ctrl_signal = obj.pid.update(mean(data), now);
                     obj.ctrl_signal_buffer.append(ctrl_signal);
                 end
             end
@@ -86,7 +95,7 @@ classdef PIDHandler < handle
             % Decide if we need a pulse by chcking the current PID loop output
             % and using the output the rate parameter through a nonlearity and
             % random variable
-            if obj.last_data > 0 && (now - obj.last_data) / 24 / 3600 > 1
+            if obj.last_data > 0 && (now - obj.last_data) * 24 * 3600 > 1
                 % Assume we stopped recording
                 disp('No new data for 1 second, assuming recording is over');
                 obj.stop();
@@ -98,14 +107,14 @@ classdef PIDHandler < handle
             else
                 ctrl_signal = obj.last_ctrl_signal;
             end
-
+            
             nonlinearity = 1 / (1 + exp(ctrl_signal));
-            disp(['P = ' num2str(nonlinearity)]);
+            obj.current_ctrl_signal = ctrl_signal;
+            obj.current_ctrl_rate = nonlinearity;
+            
             if rand(1) < nonlinearity
-                disp('Pulse');
                 src.queueOutputData(obj.pulse);
             else
-                disp('Flat');
                 src.queueOutputData(obj.flat);
             end
         end

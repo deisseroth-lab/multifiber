@@ -52,7 +52,19 @@ function pidgui_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to pidgui (see VARARGIN)
 
-handles.handler = varargin{1};
+handler = varargin{1};
+
+addlistener(handler.pid, 'Pterm', 'PostSet', @(s, e) set(handles.pterm_txt, 'String', num2str(e.AffectedObject.Pterm)));
+addlistener(handler.pid, 'Iterm', 'PostSet', @(s, e) set(handles.iterm_txt, 'String', num2str(e.AffectedObject.Iterm)));
+addlistener(handler.pid, 'Dterm', 'PostSet', @(s, e) set(handles.dterm_txt, 'String', num2str(e.AffectedObject.Dterm)));
+
+addlistener(handler, 'current_ctrl_signal', 'PostSet', @(s, e) set(handles.ctrlsig_txt, 'String', num2str(e.AffectedObject.current_ctrl_signal)));
+addlistener(handler, 'current_ctrl_rate', 'PostSet', @(s, e) set(handles.ctrlrate_txt, 'String', num2str(e.AffectedObject.current_ctrl_rate)));
+addlistener(handler.pid, 'setpt', 'PostSet', @(s, e) set(handles.setpt_txt, 'String', num2str(e.AffectedObject.setpt)));
+
+
+
+handles.handler = handler;
 
 % Choose default command line output for pidgui
 handles.output = hObject;
