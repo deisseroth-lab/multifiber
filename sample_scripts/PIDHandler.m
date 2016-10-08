@@ -41,7 +41,7 @@ classdef PIDHandler < handle
             s = daq.createSession('ni');
             devices = daq.getDevices();
             device = devices(1);
-            ch = s.addAnalogOutputChannel(device.ID, 0, 'Voltage');
+            ch = s.addAnalogOutputChannel(device.ID, 1, 'Voltage');
             s.Rate = 1000;
             s.IsContinuous = true;
             s.addlistener('DataRequired', @obj.provide);
@@ -82,8 +82,8 @@ classdef PIDHandler < handle
             % the PID.
             s = obj.session;
             if ~s.IsRunning
-                % Start outputting
-                s.queueOutputData(repmat(obj.flat, 5, 1));
+                % Start outputting with 2 seconds of nothing
+                s.queueOutputData(zeros(2 * s.Rate, 1));
                 s.startBackground();
             end
 
@@ -112,16 +112,15 @@ classdef PIDHandler < handle
 
             if obj.ctrl_signal_buffer.length > 0
                 ctrl_signal = obj.ctrl_signal_buffer.mean();
+                obj.ctrl_signal_buffer.reset();
                 obj.last_ctrl_signal = ctrl_signal;
             else
                 ctrl_signal = obj.last_ctrl_signal;
             end
             
             obj.current_ctrl_signal = ctrl_signal;
-            %nonlinearity = 1 / (1 + exp(ctrl_signal));
-            nonlinearity = max(0, ctrl_signal);
-            
-            src.queueOutputData(obj.make_pulses(nonlinearity));
+            nonlinearity = min(10, max(0, ctrl_signal));
+            src.queueOutputData(nonlinearity * obj.make_pulses(10));
         end
 	end
 end

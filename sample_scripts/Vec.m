@@ -33,7 +33,11 @@ classdef Vec < handle
         function m = mean(obj)
             m = mean(obj.data(1:obj.ptr,1));
         end
-    
+        
+        function reset(obj)
+            obj.ptr = 0;
+            obj.data = [];
+        end
     end
     
     methods(Access = private)
