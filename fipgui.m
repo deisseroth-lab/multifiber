@@ -898,13 +898,12 @@ function callback_txt_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of callback_txt as text
 %        str2double(get(hObject,'String')) returns contents of callback_txt as a double
-[path, file, ext] = fileparts(get(hObject, 'String'));
+[pathname, basename, ext] = fileparts(get(hObject, 'String'));
 if handles.callback_path
     rmpath(handles.callback_path);
 end
 addpath(pathname);
 handles.callback_path = pathname;
-[~, basename, ext] = fileparts(filename);
 
 if strcmp(basename, '<None>') || strcmp(basename, '')
     handles.callback = @(x,y) false;
@@ -916,7 +915,7 @@ else
     handles.callback = str2func(basename);
 end
 
-set(handles.callback_txt, 'String', fullfile(pathname, filename));
+set(handles.callback_txt, 'String', fullfile(pathname, [basename ext]));
 
 % Update handles structure
 guidata(hObject, handles);
