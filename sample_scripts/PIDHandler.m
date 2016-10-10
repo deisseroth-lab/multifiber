@@ -15,7 +15,7 @@ classdef PIDHandler < handle
     properties(GetAccess = public, SetAccess = public)
         pid
     end
-    
+
     properties(SetObservable, GetAccess = public, SetAccess = private)
         current_ctrl_signal = 0
         current_ctrl_rate = 0
@@ -54,7 +54,12 @@ classdef PIDHandler < handle
         function stop(obj)
             obj.session.stop();
         end
-        
+
+        function pulse = single_pulse(obj, rate, pw)
+            rate = min(rate, 1 / pw / 2);
+            obj.current_ctrl_rate = rate;
+            pulse = pulse_train(rate, pw, 1 / rate, obj.session.Rate);
+
         function train = make_pulses(obj, rate)
             % Supply half a second of data at a time using 10ms pulse
             % widths. Force duty cycle to be no greater than 50%
@@ -117,10 +122,10 @@ classdef PIDHandler < handle
             else
                 ctrl_signal = obj.last_ctrl_signal;
             end
-            
+
             obj.current_ctrl_signal = ctrl_signal;
             nonlinearity = min(10, max(0, ctrl_signal));
-            src.queueOutputData(nonlinearity * obj.make_pulses(10));
+            src.queueOutputData(nonlinearity * obj.single_pulse(20, 0.005));
         end
 	end
 end
