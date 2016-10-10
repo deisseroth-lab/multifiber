@@ -22,7 +22,7 @@ function varargout = pidgui(varargin)
 
 % Edit the above text to modify the response to help pidgui
 
-% Last Modified by GUIDE v2.5 03-Oct-2016 14:10:50
+% Last Modified by GUIDE v2.5 09-Oct-2016 23:43:10
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -59,7 +59,6 @@ addlistener(handler.pid, 'Iterm', 'PostSet', @(s, e) set(handles.iterm_txt, 'Str
 addlistener(handler.pid, 'Dterm', 'PostSet', @(s, e) set(handles.dterm_txt, 'String', num2str(e.AffectedObject.Dterm)));
 
 addlistener(handler, 'current_ctrl_signal', 'PostSet', @(s, e) set(handles.ctrlsig_txt, 'String', num2str(e.AffectedObject.current_ctrl_signal)));
-addlistener(handler, 'current_ctrl_rate', 'PostSet', @(s, e) set(handles.ctrlrate_txt, 'String', num2str(e.AffectedObject.current_ctrl_rate)));
 addlistener(handler.pid, 'setpt', 'PostSet', @(s, e) set(handles.setpt_txt, 'String', num2str(e.AffectedObject.setpt)));
 
 
@@ -205,9 +204,18 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+function rate_txt_Callback(hObject, eventdata, handles)
+% hObject    handle to rate_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of rate_txt as text
+%        str2double(get(hObject,'String')) returns contents of rate_txt as a double
+handles.handler.rate = str2double(get(hObject,'String'));
+
 % --- Executes during object creation, after setting all properties.
-function ctrlrate_txt_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ctrlrate_txt (see GCBO)
+function rate_txt_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to rate_txt (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -216,6 +224,32 @@ function ctrlrate_txt_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+function width_txt_Callback(hObject, eventdata, handles)
+% hObject    handle to width_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of width_txt as text
+%        str2double(get(hObject,'String')) returns contents of width_txt as a double
+handles.handler.width = str2double(get(hObject,'String'));
+
+
+% --- Executes during object creation, after setting all properties.
+function width_txt_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to width_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+
 
 % --- Executes during object creation, after setting all properties.
 function setpt_txt_CreateFcn(hObject, eventdata, handles)
