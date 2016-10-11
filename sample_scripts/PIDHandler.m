@@ -131,9 +131,9 @@ classdef PIDHandler < handle
 
             obj.current_ctrl_signal = ctrl_signal;
             if rand() < ctrl_signal
-                src.queueOutputData(10 * obj.single_pulse());
+                src.queueOutputData(5 * obj.single_pulse());
             else
-                src.queueOutputData(10 * zeros(length(obj.single_pulse()), 1));
+                src.queueOutputData(zeros(length(obj.single_pulse()), 1));
             end
         end
 	end

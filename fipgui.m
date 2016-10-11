@@ -1036,6 +1036,11 @@ function closeable(src, callbackdata)
 % Does the right thing (closes the figure) if used as the CloseRequestFcn
 delete(src);
 
+% --- Executes on button press in ai_logging_check.
+function ai_logging_check_Callback(hObject, eventdata, handles)
+% hObject    handle to ai_logging_check (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
 function is_enabled = ai_logging_is_enabled(handles)
 is_enabled = get(handles.ai_logging_check,'Value');
