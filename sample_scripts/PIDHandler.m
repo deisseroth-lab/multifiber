@@ -130,8 +130,11 @@ classdef PIDHandler < handle
             end
 
             obj.current_ctrl_signal = ctrl_signal;
-            nonlinearity = min(10, max(0, ctrl_signal));
-            src.queueOutputData(nonlinearity * obj.single_pulse());
+            if rand() < ctrl_signal
+                src.queueOutputData(10 * obj.single_pulse());
+            else
+                src.queueOutputData(10 * zeros(length(obj.single_pulse()), 1));
+            end
         end
 	end
 end
