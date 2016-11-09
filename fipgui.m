@@ -317,14 +317,13 @@ set(handles.calibframe_lbl, 'Visible', 'off');
 guidata(hObject, handles);
 
 % Get file paths for saving out put (auto-increment the file counter).
-function [sigFile, refFile, calibFile, logAIFile] = get_save_paths(handles)
+function [saveFile, calibFile, logAIFile] = get_save_paths(handles)
 [~, basename, ext] = fileparts(handles.savefile);
 n = 0;
 while exist(fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]), 'file') == 2
     n = n + 1;
 end
-sigFile = fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]);
-refFile = fullfile(handles.savepath, [basename sprintf('_%03d_reference', n) ext]);
+saveFile = fullfile(handles.savepath, [basename sprintf('_%03d', n) ext]);
 calibFile = fullfile(handles.savepath, [basename sprintf('_%03d_calibration', n) '.jpg']);
 logAIFile = fullfile(handles.savepath, [basename sprintf('_%03d_logAI', n) '.csv']);
 if exist(logAIFile,'file')==2
@@ -431,7 +430,7 @@ if state
     
     if settings_are_valid(handles)
         % Get save paths
-        [sigFile, refFile, calibFile, logAIFile] = get_save_paths(handles);
+        [saveFile, calibFile, logAIFile] = get_save_paths(handles);
         
         if(ai_logging_is_enabled(handles))
             % Add listener for analog input logging        
@@ -606,7 +605,7 @@ if state
 
         % Save data
         if j > 0
-            save_data(sig(1:j,:), ref(1:j,:), handles.calibImg.cdata, sigFile, refFile, calibFile);
+            save_data(sig(1:j,:), ref(1:j,:), handles.labels, handles.calibImg.cdata, saveFile, calibFile);
         else            
             warning(['No frames captured or saved! Check camera trigger connection is ' handles.camCh.Terminal '. Then restart MATLAB.']); beep;
         end
@@ -625,9 +624,8 @@ if state
     set(hObject, 'String', 'Acquire data');
 end
 
-function  save_data(sig, ref, cdata, sigFile, refFile, calibFile)
-save(sigFile, 'sig', '-v7.3');
-save(refFile, 'ref', '-v7.3');
+function  save_data(sig, ref, labels, cdata, saveFile, calibFile)
+save(saveFile, 'sig', 'ref', 'labels', '-v7.3');
 if any(cdata(:))
     imwrite(cdata, calibFile, 'JPEG');
 end
