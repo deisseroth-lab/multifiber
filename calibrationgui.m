@@ -22,7 +22,7 @@ function varargout = calibrationgui(varargin)
 
 % Edit the above text to modify the response to help calibrationgui
 
-% Last Modified by GUIDE v2.5 14-Jul-2015 22:17:35
+% Last Modified by GUIDE v2.5 09-Nov-2016 14:38:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -69,9 +69,9 @@ handles.cmap = handles.cmap(randperm(handles.maxFibers),:);
 axes(handles.color_ax);
 set(gca,'Ydir','reverse');
 for c = 1:handles.maxFibers
-    y = c*50;
-    rectangle('Position', [0 y 50 50], 'FaceColor', handles.cmap(c,:));
-    text(25 - 8, y + 25 - 8, num2str(c), 'FontSize', 16)
+    y = c*10;
+    rectangle('Position', [0 y 10 10], 'FaceColor', handles.cmap(c,:));
+    text(5 - 6, y + 5 - 6, num2str(c), 'FontSize', 12);
 end
 
 % Process the input image
@@ -92,16 +92,12 @@ handles.frameSize = size(handles.image);
 if centers
     % Initialize ellipses
     for i = 1:length(radii)
-        h = imellipse(handles.img_ax, [centers(i,1:2) - radii(i), 2*radii(i), 2*radii(i)]);
-        h.setColor(handles.cmap(i,:));
-        handles.ellipses{i} = h;
+        placeEllipse([centers(i,1:2) - radii(i), 2*radii(i), 2*radii(i)], i, handles);
     end
 else
     % No ellipses found. Place one in the middle.
     r = handles.defaultRadius;
-    h = imellipse(handles.img_ax, [handles.frameSize(1)/2 - r/2, handles.frameSize(2)/2 - r/2, r, r]);
-    h.setColor(handles.cmap(1,:));
-    handles.ellipses{1} = h;
+    placeEllipse([handles.frameSize(1)/2 - r/2, handles.frameSize(2)/2 - r/2, r, r], 1, handles);
 end
 
 % Update handles structure
@@ -110,6 +106,21 @@ guidata(hObject, handles);
 % UIWAIT makes calibrationgui wait for user response (see UIRESUME)
 uiwait(handles.calibrationgui);
 
+function placeEllipse(loc, num, handles)
+h = imellipse(handles.img_ax, loc);
+handles.ellipses{num} = h;
+
+pos = h.getPosition();
+center = [loc(1) + pos(3) / 2, pos(2) + pos(4) / 2];
+numh = text(center(1) - 6, center(2) - 6, num2str(num));
+color = handles.cmap(num,:);
+h.setColor(color);
+numh.Color = color;
+h.addNewPositionCallback(@(pos) updateNumber(pos, numh));
+
+function updateNumber(pos, h)
+center = [pos(1) + pos(3) / 2, pos(2) + pos(4) / 2];
+h.Position = [center(1) - 6, center(2) - 6, 0];
 
 % --- Outputs from this function are returned to the command line.
 function varargout = calibrationgui_OutputFcn(hObject, eventdata, handles) 
@@ -131,9 +142,7 @@ function add_btn_Callback(hObject, eventdata, handles)
 nfibers = length(handles.ellipses);
 
 r = handles.defaultRadius;
-h = imellipse(handles.img_ax, [handles.frameSize(1)/2 - r/2, handles.frameSize(2)/2 - r/2, r, r]);
-h.setColor(handles.cmap(nfibers + 1,:));
-handles.ellipses{nfibers + 1} = h;
+placeEllipse([handles.frameSize(1)/2 - r/2, handles.frameSize(2)/2 - r/2, r, r], nfibers + 1, handles);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -190,4 +199,27 @@ if isequal(get(hObject, 'waitstatus'), 'waiting')
 else
     % The GUI is no longer waiting, just close it
     delete(hObject);
+end
+
+
+
+function edit8_Callback(hObject, eventdata, handles)
+% hObject    handle to edit8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit8 as text
+%        str2double(get(hObject,'String')) returns contents of edit8 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit8_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end
