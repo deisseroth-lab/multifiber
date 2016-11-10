@@ -22,7 +22,7 @@ function varargout = calibrationgui(varargin)
 
 % Edit the above text to modify the response to help calibrationgui
 
-% Last Modified by GUIDE v2.5 09-Nov-2016 14:38:26
+% Last Modified by GUIDE v2.5 09-Nov-2016 17:19:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -65,15 +65,6 @@ handles.ellipses = {};
 handles.cmap = hsv(handles.maxFibers);
 handles.cmap = handles.cmap(randperm(handles.maxFibers),:);
 
-% Color order
-axes(handles.color_ax);
-set(gca,'Ydir','reverse');
-for c = 1:handles.maxFibers
-    y = c*10;
-    rectangle('Position', [0 y 10 10], 'FaceColor', handles.cmap(c,:));
-    text(5 - 6, y + 5 - 6, num2str(c), 'FontSize', 12);
-end
-
 % Process the input image
 handles.image = varargin{1};
 max_value = max(handles.image(:));
@@ -92,12 +83,13 @@ handles.frameSize = size(handles.image);
 if centers
     % Initialize ellipses
     for i = 1:length(radii)
-        placeEllipse([centers(i,1:2) - radii(i), 2*radii(i), 2*radii(i)], i, handles);
+        r = radii(i);
+        handles = placeEllipse([centers(i,1:2) - r, 2*r, 2*r], i, handles);
     end
 else
     % No ellipses found. Place one in the middle.
     r = handles.defaultRadius;
-    placeEllipse([handles.frameSize(1)/2 - r/2, handles.frameSize(2)/2 - r/2, r, r], 1, handles);
+    handles = placeEllipse([handles.frameSize(1)/2 - r/2, handles.frameSize(2)/2 - r/2, r, r], 1, handles);
 end
 
 % Update handles structure
@@ -106,13 +98,13 @@ guidata(hObject, handles);
 % UIWAIT makes calibrationgui wait for user response (see UIRESUME)
 uiwait(handles.calibrationgui);
 
-function placeEllipse(loc, num, handles)
-h = imellipse(handles.img_ax, loc);
+function handles = placeEllipse(pos, num, handles)
+center = [pos(1) + pos(3) / 2, pos(2) + pos(4) / 2];
+axes(handles.img_ax);
+numh = text(center(1) - 12, center(2) - 12, num2str(num), 'FontSize', 24);
+h = imellipse(handles.img_ax, pos);
 handles.ellipses{num} = h;
 
-pos = h.getPosition();
-center = [loc(1) + pos(3) / 2, pos(2) + pos(4) / 2];
-numh = text(center(1) - 6, center(2) - 6, num2str(num));
 color = handles.cmap(num,:);
 h.setColor(color);
 numh.Color = color;
@@ -120,7 +112,7 @@ h.addNewPositionCallback(@(pos) updateNumber(pos, numh));
 
 function updateNumber(pos, h)
 center = [pos(1) + pos(3) / 2, pos(2) + pos(4) / 2];
-h.Position = [center(1) - 6, center(2) - 6, 0];
+h.Position = [center(1) - 12, center(2) - 12];
 
 % --- Outputs from this function are returned to the command line.
 function varargout = calibrationgui_OutputFcn(hObject, eventdata, handles) 
@@ -142,22 +134,65 @@ function add_btn_Callback(hObject, eventdata, handles)
 nfibers = length(handles.ellipses);
 
 r = handles.defaultRadius;
-placeEllipse([handles.frameSize(1)/2 - r/2, handles.frameSize(2)/2 - r/2, r, r], nfibers + 1, handles);
+handles = placeEllipse([handles.frameSize(1)/2 - r/2, handles.frameSize(2)/2 - r/2, r, r], nfibers + 1, handles);
 
 % Update handles structure
 guidata(hObject, handles);
+
+function labels_txt_Callback(hObject, eventdata, handles)
+% hObject    handle to labels_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of labels_txt as text
+%        str2double(get(hObject,'String')) returns contents of labels_txt as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function labels_txt_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to labels_txt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
 % --- Executes on button press in done_btn.
 function done_btn_Callback(hObject, eventdata, handles)
 % hObject    handle to done_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% Pre-check for number of valid ellipses
 nfibers = 0;
 for i = 1:length(handles.ellipses)
     if isvalid(handles.ellipses{i})
-        nfibers = nfibers +1;
+        nfibers = nfibers + 1;
     end
 end
+
+% Get the number of labels and warn if there's a different number of
+% labels and fibers
+raw_labels = get(handles.labels_txt, 'String');
+[rows, cols] = size(raw_labels);
+labels = cell(rows, 1);
+for row = 1:rows
+    str = deblank(raw_labels(row,:));
+    if length(str) == 0
+        errordlg('List of labels cannot include blank lines');
+        return;
+    end
+    labels{row} = str;
+end
+
+if length(labels) ~= nfibers
+    errordlg('Number of labels must be equal to the number of fibers');
+    return;
+end
+
 frsz = handles.frameSize;
 colors = zeros(nfibers, 3);
 masks = zeros([frsz nfibers]);
@@ -181,6 +216,7 @@ end
 handles.output.figImg = figImg;
 handles.output.colors = colors;
 handles.output.masks = masks;
+handles.output.labels = labels;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -203,23 +239,3 @@ end
 
 
 
-function edit8_Callback(hObject, eventdata, handles)
-% hObject    handle to edit8 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit8 as text
-%        str2double(get(hObject,'String')) returns contents of edit8 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit8_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit8 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end

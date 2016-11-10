@@ -288,6 +288,7 @@ calibOut = calibrationgui(calibframe);
 masks = calibOut.masks;
 handles.calibColors = calibOut.colors;
 handles.calibImg = calibOut.figImg;
+handles.labels = calibOut.labels;
 
 % Use masks to determine how much we can crop
 all_masks = any(masks, 3);
