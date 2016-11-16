@@ -321,7 +321,7 @@ guidata(hObject, handles);
 function [saveFile, calibFile, logAIFile] = get_save_paths(handles)
 [~, basename, ext] = fileparts(handles.savefile);
 n = 0;
-while exist(fullfile(handles.savepath, [basename sprintf('_%03d_signal', n) ext]), 'file') == 2
+while exist(fullfile(handles.savepath, [basename sprintf('_%03d', n) ext]), 'file') == 2
     n = n + 1;
 end
 saveFile = fullfile(handles.savepath, [basename sprintf('_%03d', n) ext]);
