@@ -606,7 +606,7 @@ if state
 
         % Save data
         if j > 0
-            save_data(sig(1:j,:), ref(1:j,:), handles.labels, handles.calibImg.cdata, saveFile, calibFile);
+            save_data(sig(1:j,:), ref(1:j,:), handles.labels, rate, handles.calibImg.cdata, saveFile, calibFile);
         else            
             warning(['No frames captured or saved! Check camera trigger connection is ' handles.camCh.Terminal '. Then restart MATLAB.']); beep;
         end
@@ -625,8 +625,8 @@ if state
     set(hObject, 'String', 'Acquire data');
 end
 
-function  save_data(sig, ref, labels, cdata, saveFile, calibFile)
-save(saveFile, 'sig', 'ref', 'labels', '-v7.3');
+function  save_data(sig, ref, labels, framerate, cdata, saveFile, calibFile)
+save(saveFile, 'sig', 'ref', 'labels', 'framerate', '-v7.3');
 if any(cdata(:))
     imwrite(cdata, calibFile, 'JPEG');
 end
