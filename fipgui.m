@@ -564,6 +564,20 @@ if state
                     refmin = min(ref(max(1, j-framesback):jboth,k));
                     refmax = max(ref(max(1, j-framesback):jboth,k));
                     
+                    % put axes on same scale, but allow zero to float
+                    if sigmax - sigmin > refmax - refmin
+                        spread = sigmax - sigmin;
+                        mid = (refmax + refmin) / 2;
+                        refmax = mid + spread / 2;
+                        refmin = mid - spread / 2;
+                    else
+                        spread = refmax - refmin;
+                        mid = (sigmax + sigmin) / 2;
+                        sigmax = mid + spread / 2;
+                        sigmin = mid - spread / 2;
+                    end
+                    
+                    % if max = min, don't try to update bounds
                     if sigmax > sigmin
                         ylim(yyaxes(k,1), [sigmin sigmax]);
                     end
