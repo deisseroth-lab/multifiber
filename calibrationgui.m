@@ -83,7 +83,7 @@ handles.frameSize = size(handles.image);
 if centers
     % Initialize ellipses
     for i = 1:length(radii)
-        r = radii(i);
+        r = radii(i) * 0.9;
         handles = placeEllipse([centers(i,1:2) - r, 2*r, 2*r], i, handles);
     end
 else
@@ -115,7 +115,7 @@ center = [pos(1) + pos(3) / 2, pos(2) + pos(4) / 2];
 h.Position = [center(1) - 12, center(2) - 12];
 
 % --- Outputs from this function are returned to the command line.
-function varargout = calibrationgui_OutputFcn(hObject, eventdata, handles) 
+function varargout = calibrationgui_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -220,7 +220,7 @@ handles.output.labels = labels;
 
 % Update handles structure
 guidata(hObject, handles);
-    
+
 close(handles.calibrationgui);
 
 % --- Executes when user attempts to close calibrationgui.
@@ -236,6 +236,3 @@ else
     % The GUI is no longer waiting, just close it
     delete(hObject);
 end
-
-
-
