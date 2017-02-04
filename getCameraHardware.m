@@ -10,7 +10,7 @@ for adaptor = adaptors.InstalledAdaptors
     for device = devices.DeviceInfo
         for format = device.SupportedFormats
             % Support only the Orca's "Fast" mode.
-            if( length(findstr('Fast', format{1})) > 0)
+            if ~isempty(findstr('Fast', format{1})) || ~isempty(findstr('Mono8', format{1}))
                 i = i + 1;
                 adaptorsOut = [adaptorsOut adaptor];
                 devNameParts = strsplit(device.DeviceName, ',');

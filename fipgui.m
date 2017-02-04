@@ -129,7 +129,7 @@ try
     camCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.camport_pop), 'PulseGeneration');
     camCh.Frequency = rate;
     camCh.InitialDelay = 0;
-    camCh.DutyCycle = 0.1;
+    camCh.DutyCycle = 0.9;
     disp(['Camera should be connected to ' camCh.Terminal]);
 
     refCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.ref_pop), 'PulseGeneration');
@@ -179,7 +179,7 @@ handles.sigCh = sigCh;
 handles.s = s;
 
 % Setup camera
-camDeviceN = get(handles.cam_pop, 'Value');
+camDeviceN = 1;%get(handles.cam_pop, 'Value');
 vid = videoinput(adaptors{camDeviceN}, IDs(camDeviceN), formats{camDeviceN});
 src = getselectedsource(vid);
 vid.FramesPerTrigger = 1; 
@@ -269,13 +269,29 @@ frames = zeros(res(1), res(2), nFrames);
 set(handles.vid, 'ROIPosition', [0 0 res]);
 
 load_analog_output_data(handles, true);
-triggerconfig(handles.vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
+try
+    triggerconfig(handles.vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
+catch E
+    triggerconfig(handles.vid, 'hardware', 'DeviceSpecific', 'DeviceSpecific');
+end
 start(handles.vid);
 startBackground(handles.s);
 
+flip = false;
+
 while i < nFrames
     i = i + 1;
-    frames(:,:,i) = getdata(handles.vid, 1, 'uint16');
+    data = getdata(handles.vid, 1, 'uint16');
+    if all(size(data) == size(frames(:,:,i)))
+        frames(:,:,i) = data;
+    else
+        frames(:,:,i) = data';
+        flip = true;
+    end
+end
+
+if flip
+    frames = permute(frames, [2, 1, 3]);
 end
 
 stop(handles.vid);
@@ -787,7 +803,10 @@ guidata(hObject, handles);
 
 function update_camera_exposure_time(handles)
    rate = str2double(get(handles.rate_txt, 'String'));
-   handles.src.ExposureTime = 1 / rate - handles.exposureGap;
+   try
+       handles.src.ExposureTime = 1 / rate - handles.exposureGap;
+   end
+   
 function cam_pop_Callback(hObject, eventdata, handles)
 % hObject    handle to cam_pop (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
