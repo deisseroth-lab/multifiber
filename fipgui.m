@@ -179,12 +179,14 @@ handles.sigCh = sigCh;
 handles.s = s;
 
 % Setup camera
-camDeviceN = 1;%get(handles.cam_pop, 'Value');
-vid = videoinput(adaptors{camDeviceN}, IDs(camDeviceN), formats{camDeviceN});
+% camDeviceN = get(handles.cam_pop, 'Value');
+% vid = videoinput(adaptors{camDeviceN}, IDs(camDeviceN), formats{camDeviceN});
+% src = getselectedsource(vid);
+% vid.FramesPerTrigger = 1; 
+% vid.TriggerRepeat = Inf;
+% vid.ROIPosition = [0 0 vid.VideoResolution];
+load('flea3.mat');
 src = getselectedsource(vid);
-vid.FramesPerTrigger = 1; 
-vid.TriggerRepeat = Inf;
-vid.ROIPosition = [0 0 vid.VideoResolution];
 
 handles.vid = vid;
 handles.src = src;
@@ -248,7 +250,8 @@ function snap_btn_Callback(hObject, eventdata, handles)
 % hObject    handle to snap_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-snapframe = getsnapshot(handles.vid);
+
+snapframe = take_snapshot(handles.vid);
 
 % Display the frame
 figure();
@@ -264,34 +267,18 @@ function calibframe_btn_Callback(hObject, eventdata, handles)
 % Run the camera and LED commands briefly to get illuminated frames
 nFrames = 4;
 i = 0;
-res = get(handles.vid, 'VideoResolution');
+res = getRes(handles.vid);
+setROI(handles.vid, [0 0 res]);
 frames = zeros(res(1), res(2), nFrames);
-set(handles.vid, 'ROIPosition', [0 0 res]);
 
 load_analog_output_data(handles, true);
-try
-    triggerconfig(handles.vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
-catch E
-    triggerconfig(handles.vid, 'hardware', 'DeviceSpecific', 'DeviceSpecific');
-end
+
 start(handles.vid);
 startBackground(handles.s);
 
-flip = false;
-
 while i < nFrames
     i = i + 1;
-    data = getdata(handles.vid, 1, 'uint16');
-    if all(size(data) == size(frames(:,:,i)))
-        frames(:,:,i) = data;
-    else
-        frames(:,:,i) = data';
-        flip = true;
-    end
-end
-
-if flip
-    frames = permute(frames, [2, 1, 3]);
+    frames(:,:,i) = getdata(handles.vid, 1, 'uint16');
 end
 
 stop(handles.vid);
@@ -313,12 +300,11 @@ crop_roi = [min(cols), min(rows), max(cols) - min(cols) + 1, max(rows) - min(row
 masks = masks(min(rows):max(rows), min(cols):max(cols), :);
 handles.crop_roi = crop_roi;
 handles.masks = logical(masks);
-handles.vid.ROIPosition = crop_roi;
+setROI(handles.vid, crop_roi);
 % This also sets the exposureGap. This assumes bidirectional center-out
 % rolling shutter
 r_min = min(rows);
 r_max = max(rows);
-res = handles.vid.VideoResolution;
 r_center = res(1)/2; % center row for orca
 row_range = min(r_max-r_min, ceil(max(abs(r_center - r_min), abs(r_center -r_max))));
 disp(row_range);
@@ -404,6 +390,18 @@ function user_waveform = load_user_ao_waveform(handles)
 function load_zero_valued_ao_data(src, event)
     % minimum output is 0.5s of samples, for 4 channels
     src.queueOutputData(zeros(5000,4));
+    
+% Take a snapshot, remembering to configure/reconfigure triggering
+function [ snapframe ] = take_snapshot(vid)
+trigsrc = vid.TriggerSource;
+trigtype = vid.TriggerType;
+trigcond = vid.TriggerCondition;
+
+triggerconfig(vid, 'immediate');
+
+snapframe = getsnapshot(vid);
+
+triggerconfig(vid, trigtype, trigcond, trigsrc);
 
 % --- Executes on button press in acquire_tgl.
 function acquire_tgl_Callback(hObject, eventdata, handles)
@@ -457,10 +455,14 @@ if state
         end
         
         % Snap a quick dark frame
-        darkframe = getsnapshot(handles.vid);
+        darkframe = take_snapshot(handles.vid);
 
         if ~any(handles.masks(:))
-            handles.masks = ones(handles.vid.VideoResolution);
+            res = handles.vid.VideoResolution;
+            if res(1) > res(2)
+                res = res(end:-1:1);
+             end
+            handles.masks = ones(res);
             darkOffset = mean(darkframe(:));
         else
             darkOffset = applyMasks(handles.masks, darkframe);
@@ -508,7 +510,7 @@ if state
             lyy(k,:) = [l1 l2];
         end
 
-        triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
+        %triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
         load_analog_output_data(handles, false);
         start(vid);
         
@@ -815,27 +817,26 @@ function cam_pop_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of cam_pop as text
 %        str2double(get(hObject,'String')) returns contents of cam_pop as a double
 % Setup camera
-rate = str2double(get(handles.rate_txt, 'String'));
-[adaptors, devices, formats, IDs] = getCameraHardware();
-camDeviceN = get(hObject, 'Value');
-vid = videoinput(adaptors{camDeviceN}, IDs(camDeviceN), formats{camDeviceN});
-src = getselectedsource(vid);
-vid.FramesPerTrigger = 1; 
-vid.TriggerRepeat = Inf;
-
-handles.vid = vid;
-handles.src = src;
-
-% Choose default command line output for fipgui
-handles.output = hObject;
-
-% Update handles structure
-guidata(hObject, handles);
-update_camera_exposure_time(handles);
-
-% Disable acquisition until calibration is run
-set(handles.acquire_tgl, 'Enable', 'off');
-set(handles.calibframe_lbl, 'Visible', 'on');
+% rate = str2double(get(handles.rate_txt, 'String'));
+% [adaptors, devices, formats, IDs] = getCameraHardware();
+% camDeviceN = get(hObject, 'Value');
+% vid = videoinput(adaptors{camDeviceN}, IDs(camDeviceN), formats{camDeviceN});
+% addpath('configs');
+% [vid, src] = flea3(vid);
+% 
+% handles.vid = vid;
+% handles.src = src;
+% 
+% % Choose default command line output for fipgui
+% handles.output = hObject;
+% 
+% % Update handles structure
+% guidata(hObject, handles);
+% update_camera_exposure_time(handles);
+% 
+% % Disable acquisition until calibration is run
+% set(handles.acquire_tgl, 'Enable', 'off');
+% set(handles.calibframe_lbl, 'Visible', 'on');
 
 
 % --- Executes during object creation, after setting all properties.
