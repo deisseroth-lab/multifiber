@@ -125,23 +125,24 @@ handles.dev = device;
 s = daq.createSession('ni');
 s.Rate = fs;
 s.IsContinuous = true;
+readout_fraction = 0.1;
 try
     camCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.camport_pop), 'PulseGeneration');
     camCh.Frequency = rate;
     camCh.InitialDelay = 0;
-    camCh.DutyCycle = 0.9;
+    camCh.DutyCycle = 0.1;%1 - readout_fraction;
     disp(['Camera should be connected to ' camCh.Terminal]);
 
     refCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.ref_pop), 'PulseGeneration');
     refCh.Frequency = rate / 2;
-    refCh.InitialDelay = 1 / rate * 0.05;
-    refCh.DutyCycle = 0.45;
+    refCh.InitialDelay = 1 / rate * (readout_fraction / 2);
+    refCh.DutyCycle = 0.5 - (readout_fraction / 2);
     disp(['Reference LED should be connected to ' refCh.Terminal]);
 
     sigCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.sig_pop), 'PulseGeneration');
     sigCh.Frequency = rate / 2;
-    sigCh.InitialDelay = 1 / rate * 1.05;
-    sigCh.DutyCycle = 0.45;
+    sigCh.InitialDelay = 1 / rate * (1 + readout_fraction / 2);
+    sigCh.DutyCycle = 0.5 - (readout_fraction / 2);
     disp(['Signal LED should be connected to ' sigCh.Terminal]);
 catch e
     disp(e);
@@ -187,7 +188,6 @@ handles.s = s;
 % vid.ROIPosition = [0 0 vid.VideoResolution];
 load('flea3.mat');
 src = getselectedsource(vid);
-
 handles.vid = vid;
 handles.src = src;
 
@@ -393,6 +393,8 @@ function load_zero_valued_ao_data(src, event)
     
 % Take a snapshot, remembering to configure/reconfigure triggering
 function [ snapframe ] = take_snapshot(vid)
+src = getselectedsource(vid);
+src.TriggerMode = 'Off';
 trigsrc = vid.TriggerSource;
 trigtype = vid.TriggerType;
 trigcond = vid.TriggerCondition;
@@ -402,6 +404,7 @@ triggerconfig(vid, 'immediate');
 snapframe = getsnapshot(vid);
 
 triggerconfig(vid, trigtype, trigcond, trigsrc);
+src.TriggerMode = 'On';
 
 % --- Executes on button press in acquire_tgl.
 function acquire_tgl_Callback(hObject, eventdata, handles)
@@ -458,10 +461,7 @@ if state
         darkframe = take_snapshot(handles.vid);
 
         if ~any(handles.masks(:))
-            res = handles.vid.VideoResolution;
-            if res(1) > res(2)
-                res = res(end:-1:1);
-             end
+            res = getRes(handles.vid);
             handles.masks = ones(res);
             darkOffset = mean(darkframe(:));
         else
@@ -510,7 +510,6 @@ if state
             lyy(k,:) = [l1 l2];
         end
 
-        %triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
         load_analog_output_data(handles, false);
         start(vid);
         
@@ -805,9 +804,8 @@ guidata(hObject, handles);
 
 function update_camera_exposure_time(handles)
    rate = str2double(get(handles.rate_txt, 'String'));
-   try
-       handles.src.ExposureTime = 1 / rate - handles.exposureGap;
-   end
+   handles.src.ExposureMode = 'Timed';
+   handles.src.ExposureTime = 1 / rate * 1000 - handles.exposureGap;
    
 function cam_pop_Callback(hObject, eventdata, handles)
 % hObject    handle to cam_pop (see GCBO)
