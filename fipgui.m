@@ -60,7 +60,6 @@ handles.plotLookback = 10;
 handles.settingsGroup = 'FIPGUI';
 
 % Defaults
-handles.crop_roi = false;
 handles.masks = false;
 handles.savepath = '.';
 handles.savefile = get(handles.save_txt, 'String');
@@ -296,11 +295,11 @@ handles.labels = calibOut.labels;
 % Use masks to determine how much we can crop
 all_masks = any(masks, 3);
 [rows, cols] = ind2sub(size(all_masks), find(all_masks));
-crop_roi = [min(cols), min(rows), max(cols) - min(cols) + 1, max(rows) - min(rows) + 1];
+crop_roi = [min(rows), min(cols), max(rows) - min(rows) + 1, max(cols) - min(cols) + 1];
 masks = masks(min(rows):max(rows), min(cols):max(cols), :);
-handles.crop_roi = crop_roi;
 handles.masks = logical(masks);
 setROI(handles.vid, crop_roi);
+
 % This also sets the exposureGap. This assumes bidirectional center-out
 % rolling shutter
 r_min = min(rows);
@@ -610,19 +609,19 @@ if state
             % Check to make sure camera acquisition is keeping up.
             elapsed_time = (now() - handles.startTime());
             rate = str2double(get(handles.rate_txt,'String'));            
-            if abs(elapsed_time*24*3600 - (i)/rate) > 1 % if camera acquisition falls behind more than 1 s...
-                fraction_frames_acquired = i/(elapsed_time*24*3600*rate);                
-                if j > 0
-                    disp(['fraction of frames acquired: ' num2str(fraction_frames_acquired)]);
-                    if abs(fraction_frames_acquired - 0.5) < 0.04
-                        warning('ERROR: Only got half as many frames as expected. Most likely check trigger connections; less likely: select a smaller ROI or lower speed and try again. Last resort: increase handles.computer_dependent_delay');
-                    else
-                        warning('ERROR: Camera acquisition fell behind! Select a smaller ROI or lower speed and try again. Last resort: increase handles.computer_dependent_delay'); beep;
-                    end
-                end
-                set(hObject,'Value', false);
-                break
-            end
+%             if abs(elapsed_time*24*3600 - (i)/rate) > 1 % if camera acquisition falls behind more than 1 s...
+%                 fraction_frames_acquired = i/(elapsed_time*24*3600*rate);                
+%                 if j > 0
+%                     disp(['fraction of frames acquired: ' num2str(fraction_frames_acquired)]);
+%                     if abs(fraction_frames_acquired - 0.5) < 0.04
+%                         warning('ERROR: Only got half as many frames as expected. Most likely check trigger connections; less likely: select a smaller ROI or lower speed and try again. Last resort: increase handles.computer_dependent_delay');
+%                     else
+%                         warning('ERROR: Camera acquisition fell behind! Select a smaller ROI or lower speed and try again. Last resort: increase handles.computer_dependent_delay'); beep;
+%                     end
+%                 end
+%                 set(hObject,'Value', false);
+%                 break
+%             end
             set(handles.elapsed_txt, 'String', datestr(elapsed_time, 'HH:MM:SS'));
         end
         disp('...acquisition complete.');
@@ -804,8 +803,9 @@ guidata(hObject, handles);
 
 function update_camera_exposure_time(handles)
    rate = str2double(get(handles.rate_txt, 'String'));
+   %handles.src.ExposureAuto = 'Off';
    handles.src.ExposureMode = 'Timed';
-   handles.src.ExposureTime = 1 / rate * 1000 - handles.exposureGap;
+   handles.src.ExposureTime = 1000* (1 / rate * 1000 - handles.exposureGap);
    
 function cam_pop_Callback(hObject, eventdata, handles)
 % hObject    handle to cam_pop (see GCBO)

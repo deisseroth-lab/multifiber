@@ -91,7 +91,7 @@ if centers
 else
     % No ellipses found. Place one in the middle.
     r = handles.defaultRadius;
-    handles = placeEllipse([handles.frameSize(1)/2 - r/2, handles.frameSize(2)/2 - r/2, r, r], 1, handles);
+    handles = placeEllipse([handles.frameSize(2)/2 - r/2, handles.frameSize(1)/2 - r/2, r, r], 1, handles);
 end
 
 % Update handles structure
@@ -103,7 +103,7 @@ uiwait(handles.calibrationgui);
 function handles = placeEllipse(pos, num, handles)
 center = [pos(1) + pos(3) / 2, pos(2) + pos(4) / 2];
 axes(handles.img_ax);
-numh = text(center(1) - 12, center(2) - 12, num2str(num), 'FontSize', 24);
+numh = text(center(1) - 6, center(2) - 6, num2str(num), 'FontSize', 24);
 h = imellipse(handles.img_ax, pos);
 handles.ellipses{num} = h;
 
@@ -114,7 +114,7 @@ h.addNewPositionCallback(@(pos) updateNumber(pos, numh));
 
 function updateNumber(pos, h)
 center = [pos(1) + pos(3) / 2, pos(2) + pos(4) / 2];
-h.Position = [center(1) - 12, center(2) - 12];
+h.Position = [center(1) - 6, center(2) - 6];
 
 % --- Outputs from this function are returned to the command line.
 function varargout = calibrationgui_OutputFcn(hObject, eventdata, handles)
@@ -136,7 +136,7 @@ function add_btn_Callback(hObject, eventdata, handles)
 nfibers = length(handles.ellipses);
 
 r = handles.defaultRadius;
-handles = placeEllipse([handles.frameSize(1)/2 - r/2, handles.frameSize(2)/2 - r/2, r, r], nfibers + 1, handles);
+handles = placeEllipse([handles.frameSize(2)/2 - r/2, handles.frameSize(1)/2 - r/2, r, r], nfibers + 1, handles);
 
 % Update handles structure
 guidata(hObject, handles);
