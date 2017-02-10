@@ -76,6 +76,8 @@ if max_value*100/65535 < 10
     warning('Consider increasing the light power or reducing the acquisition rate for better signal to noise.');
 end
 imagesc(handles.image, 'Parent', handles.img_ax);
+axes(handles.img_ax);
+axis equal tight;
 handles.frameSize = size(handles.image);
 
 % Find initial circles
