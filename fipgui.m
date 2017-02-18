@@ -53,9 +53,9 @@ function fipgui_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to fipgui (see VARARGIN)
 
 % Parameters
-handles.computer_dependent_delay = 0.00015; % seconds
+handles.computer_dependent_delay = 0.0003; % seconds
 handles.sample_rate_factor = 10; % how much faster DAQ samples than camera
-handles.exposureGap = 0;
+handles.exposureGap = handles.computer_dependent_delay + 0.002;
 handles.plotLookback = 10;
 handles.settingsGroup = 'FIPGUI';
 
@@ -128,18 +128,18 @@ try
     camCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.camport_pop), 'PulseGeneration');
     camCh.Frequency = rate;
     camCh.InitialDelay = 0;
-    camCh.DutyCycle = 0.1;
+    camCh.DutyCycle = 0.03;
     disp(['Camera should be connected to ' camCh.Terminal]);
 
     refCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.ref_pop), 'PulseGeneration');
     refCh.Frequency = rate / 2;
-    refCh.InitialDelay = 1 / rate * 0.05;
+    refCh.InitialDelay = 0;
     refCh.DutyCycle = 0.45;
     disp(['Reference LED should be connected to ' refCh.Terminal]);
 
     sigCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.sig_pop), 'PulseGeneration');
     sigCh.Frequency = rate / 2;
-    sigCh.InitialDelay = 1 / rate * 1.05;
+    sigCh.InitialDelay = 1 / rate;
     sigCh.DutyCycle = 0.45;
     disp(['Signal LED should be connected to ' sigCh.Terminal]);
 catch e
@@ -184,9 +184,20 @@ handles.s = s;
 % vid.FramesPerTrigger = 1; 
 % vid.TriggerRepeat = Inf;
 % vid.ROIPosition = [0 0 vid.VideoResolution];
-load('flea3.mat');
+vid = videoinput('pointgrey', 1, 'F7_Mono12_324x244_Mode1');
 src = getselectedsource(vid);
-src.Gain = 2;
+
+vid.FramesPerTrigger = 1;
+vid.TriggerRepeat = Inf;
+triggerconfig(vid, 'hardware', 'risingEdge', 'externalTriggerMode14-Source0');
+src.FrameRateMode = 'Off';
+src.Gain = 1;
+src.GammaMode = 'Off';
+src.PacketSize = 9000;
+src.SharpnessMode = 'Off';
+src.ExposureMode = 'Off';
+src.TriggerDelayMode = 'Off';
+
 handles.vid = vid;
 handles.src = src;
 
@@ -396,17 +407,10 @@ function load_zero_valued_ao_data(src, event)
 % Take a snapshot, remembering to configure/reconfigure triggering
 function [ snapframe ] = take_snapshot(vid)
 src = getselectedsource(vid);
-src.TriggerMode = 'Off';
-trigsrc = vid.TriggerSource;
-trigtype = vid.TriggerType;
-trigcond = vid.TriggerCondition;
 
 triggerconfig(vid, 'immediate');
-
 snapframe = getsnapshot(vid);
-
-triggerconfig(vid, trigtype, trigcond, trigsrc);
-src.TriggerMode = 'On';
+triggerconfig(vid, 'hardware', 'risingEdge', 'externalTriggerMode14-Source0');
 
 % --- Executes on button press in acquire_tgl.
 function acquire_tgl_Callback(hObject, eventdata, handles)
@@ -806,9 +810,10 @@ guidata(hObject, handles);
 
 function update_camera_exposure_time(handles)
    rate = str2double(get(handles.rate_txt, 'String'));
-   %handles.src.ExposureAuto = 'Off';
-   handles.src.ExposureMode = 'Timed';
-   handles.src.ExposureTime = 1000 * (1 / rate * 1000) * 0.75; %1000 * (1 / rate * 1000 - handles.exposureGap);
+   handles.src.ShutterMode = 'Manual';
+   shutter_props = propinfo(handles.src, 'Shutter');
+   shutter = min(shutter_props.ConstraintValue(2) * 0.9, 1000 * (1 / rate - handles.exposureGap));
+   handles.src.Shutter = shutter;
    
 function cam_pop_Callback(hObject, eventdata, handles)
 % hObject    handle to cam_pop (see GCBO)
