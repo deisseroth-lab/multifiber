@@ -128,18 +128,18 @@ try
     camCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.camport_pop), 'PulseGeneration');
     camCh.Frequency = rate;
     camCh.InitialDelay = 0;
-    camCh.DutyCycle = 0.03;
+    camCh.DutyCycle = 0.5;
     disp(['Camera should be connected to ' camCh.Terminal]);
 
     refCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.ref_pop), 'PulseGeneration');
     refCh.Frequency = rate / 2;
-    refCh.InitialDelay = 0;
+    refCh.InitialDelay = 1 / rate * 0.05;
     refCh.DutyCycle = 0.45;
     disp(['Reference LED should be connected to ' refCh.Terminal]);
 
     sigCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.sig_pop), 'PulseGeneration');
     sigCh.Frequency = rate / 2;
-    sigCh.InitialDelay = 1 / rate;
+    sigCh.InitialDelay = 1 / rate * 1.05;
     sigCh.DutyCycle = 0.45;
     disp(['Signal LED should be connected to ' sigCh.Terminal]);
 catch e
