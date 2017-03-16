@@ -53,9 +53,7 @@ function fipgui_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to fipgui (see VARARGIN)
 
 % Parameters
-handles.computer_dependent_delay = 0.00015; % seconds
 handles.sample_rate_factor = 10; % how much faster DAQ samples than camera
-handles.exposureGap = 0;
 handles.plotLookback = 10;
 handles.settingsGroup = 'FIPGUI';
 
@@ -85,9 +83,6 @@ set(handles.cam_pop, 'String', options);
 
 % Recover settings from last time
 grp = handles.settingsGroup;
-set(handles.camport_pop, 'Value', getpref(grp, 'camport_pop', 1));
-set(handles.ref_pop, 'Value', getpref(grp, 'ref_pop', 2));
-set(handles.sig_pop, 'Value', getpref(grp, 'sig_pop', 3));
 try
     set(handles.ai_logging_check, 'Value', getpref(grp, 'ai_logging_check'));
 catch e
@@ -124,43 +119,16 @@ handles.dev = device;
 s = daq.createSession('ni');
 s.Rate = fs;
 s.IsContinuous = true;
-try
-    camCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.camport_pop), 'PulseGeneration');
-    camCh.Frequency = rate;
-    camCh.InitialDelay = 0;
-    camCh.DutyCycle = 0.5;
-    disp(['Camera should be connected to ' camCh.Terminal]);
-
-    refCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.ref_pop), 'PulseGeneration');
-    refCh.Frequency = rate / 2;
-    refCh.InitialDelay = 1 / rate * 0.05;
-    refCh.DutyCycle = 0.45;
-    disp(['Reference LED should be connected to ' refCh.Terminal]);
-
-    sigCh = s.addCounterOutputChannel(device.ID, getCurrentPopupString(handles.sig_pop), 'PulseGeneration');
-    sigCh.Frequency = rate / 2;
-    sigCh.InitialDelay = 1 / rate * 1.05;
-    sigCh.DutyCycle = 0.45;
-    disp(['Signal LED should be connected to ' sigCh.Terminal]);
-catch e
-    disp(e);
-    setpref('FIPGUI', 'camport_pop',1);
-    setpref('FIPGUI', 'ref_pop',2);
-    setpref('FIPGUI', 'sig_pop',3);
-    error('Restart MATLAB');
-end
 
 % Enable analog input logging
-ch = addAnalogInputChannel(s,handles.dev.ID,[0:7], 'Voltage');
+ch = addAnalogInputChannel(s,handles.dev.ID, 0:7, 'Voltage');
 lh = addlistener(s, 'DataAvailable', @(src, event) 0); % add a dummy listener
-disp(['(optional for logging) Analog inputs should be connected to ai0 - ai7']);
+disp('(optional for logging) Analog inputs should be connected to ai0 - ai7');
 
 % Enable analog output
 ao0=addAnalogOutputChannel(s,handles.dev.ID,'ao0', 'Voltage');
 ao1=addAnalogOutputChannel(s,handles.dev.ID,'ao1', 'Voltage');
-ao2=addAnalogOutputChannel(s,handles.dev.ID,'ao2', 'Voltage');
-ao3=addAnalogOutputChannel(s,handles.dev.ID,'ao3', 'Voltage');
-disp(['(optional) Analog outputs should be connected to ao0 - ao3']);
+disp('(optional) Analog outputs should be connected to ao0 - ao1');
 % This listener is enabled later if analog outputs are not used, and will
 % continuously set the outputs to zero.
 lh_ao=addlistener(s,'DataRequired', @load_zero_valued_ao_data);
@@ -172,9 +140,6 @@ s.startBackground();
 stop(s);
 
 handles.lh_ao=lh_ao;
-handles.camCh = camCh;
-handles.refCh = refCh;
-handles.sigCh = sigCh;
 handles.s = s;
 
 % Setup camera
@@ -184,19 +149,18 @@ handles.s = s;
 % vid.FramesPerTrigger = 1;
 % vid.TriggerRepeat = Inf;
 % vid.ROIPosition = [0 0 vid.VideoResolution];
-vid = videoinput('pointgrey', 1, 'F7_Mono12_324x244_Mode1');
+vid = videoinput('gige', 1, 'Mono8');
+vid.FramesPerTrigger = Inf;
+triggerconfig(vid, 'immediate');
 src = getselectedsource(vid);
-
-vid.FramesPerTrigger = 1;
-vid.TriggerRepeat = Inf;
-triggerconfig(vid, 'hardware', 'risingEdge', 'externalTriggerMode14-Source0');
-src.FrameRateMode = 'Off';
+src.AcquisitionFrameRateEnabled = 'True';
+src.AcquisitionFrameRateAuto = 'Off';
 src.Gain = 1;
-src.GammaMode = 'Off';
-src.PacketSize = 9000;
-src.SharpnessMode = 'Off';
-src.ExposureMode = 'Off';
-src.TriggerDelayMode = 'Off';
+src.GammaEnabled = 'False';
+src.PacketSize = 7000;
+src.SharpnessEnabled = 'False';
+src.ExposureAuto = 'Once';
+src.ExposureMode = 'Timed';
 
 handles.vid = vid;
 handles.src = src;
@@ -261,7 +225,7 @@ function snap_btn_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-snapframe = take_snapshot(handles.vid);
+snapframe = getsnapshot(handles.vid);
 
 % Display the frame
 figure();
@@ -284,7 +248,6 @@ frames = zeros(res(1), res(2), nFrames);
 load_analog_output_data(handles, true);
 
 start(handles.vid);
-startBackground(handles.s);
 
 while i < nFrames
     i = i + 1;
@@ -292,7 +255,6 @@ while i < nFrames
 end
 
 stop(handles.vid);
-stop(handles.s);
 
 calibframe = max(frames, [], 3);
 
@@ -314,15 +276,6 @@ new_roi = getROI(handles.vid);
 masks = masks(new_roi(1):(new_roi(1) + new_roi(3) - 1), new_roi(2):(new_roi(2) + new_roi(4) - 1), :);
 handles.masks = logical(masks);
 
-% This also sets the exposureGap. This assumes bidirectional center-out
-% rolling shutter
-r_min = min(rows);
-r_max = max(rows);
-r_center = res(1)/2; % center row for orca
-row_range = min(r_max-r_min, ceil(max(abs(r_center - r_min), abs(r_center -r_max))));
-disp(row_range);
-full_frame_readout_time = 0.010; % camera and mode dependent, assumes Orca FAST mode
-handles.exposureGap = handles.computer_dependent_delay + full_frame_readout_time/(res(1)/2)*row_range;
 guidata(hObject, handles);
 update_camera_exposure_time(handles)
 
@@ -344,15 +297,6 @@ calibFile = fullfile(handles.savepath, [basename sprintf('_%03d_calibration', n)
 logAIFile = fullfile(handles.savepath, [basename sprintf('_%03d_logAI', n) '.csv']);
 if exist(logAIFile,'file')==2
     delete(logAIFile);
-end
-
-% Validate settings
-function valid = settings_are_valid(handles)
-valid = true;
-ports = [get(handles.camport_pop, 'Value'), get(handles.ref_pop, 'Value'), get(handles.sig_pop, 'Value')];
-if length(unique(ports)) < length(ports)
-    valid = false;
-    errordlg('Two or more devices (e.g. reference LED and camera) are set to the same DAQ port. Please correct this to proceed.', 'Config error');
 end
 
 % Analog output data must be loaded before a session is started
@@ -401,16 +345,8 @@ function user_waveform = load_user_ao_waveform(handles)
 
 % Call back function to load zero valued AO data
 function load_zero_valued_ao_data(src, event)
-    % minimum output is 0.5s of samples, for 4 channels
-    src.queueOutputData(zeros(5000,4));
-
-% Take a snapshot, remembering to configure/reconfigure triggering
-function [ snapframe ] = take_snapshot(vid)
-src = getselectedsource(vid);
-
-triggerconfig(vid, 'immediate');
-snapframe = getsnapshot(vid);
-triggerconfig(vid, 'hardware', 'risingEdge', 'externalTriggerMode14-Source0');
+    % minimum output is 0.5s of samples, for 2 channels
+    src.queueOutputData(zeros(5000,2));
 
 % --- Executes on button press in acquire_tgl.
 function acquire_tgl_Callback(hObject, eventdata, handles)
@@ -429,9 +365,6 @@ if state
 
     % Disable all settings
     confControls = [
-        handles.camport_pop
-        handles.ref_pop
-        handles.sig_pop
         handles.rate_txt
         handles.cam_pop
         handles.snap_btn
@@ -452,170 +385,169 @@ if state
     % Re-label button
     set(hObject, 'String', 'Stop acquisition');
 
-    if settings_are_valid(handles)
-        % Get save paths
-        [saveFile, calibFile, logAIFile] = get_save_paths(handles);
+    % Get save paths
+    [saveFile, calibFile, logAIFile] = get_save_paths(handles);
 
-        if(ai_logging_is_enabled(handles))
-            % Add listener for analog input logging
-            lh = addlistener(handles.s, 'DataAvailable', @(src, event) logAIData(src, event, logAIFile));
-            handles.s.NotifyWhenDataAvailableExceeds = round(handles.s.Rate*1);
-            disp('Added analog input channels and listener');
+    if(ai_logging_is_enabled(handles))
+        % Add listener for analog input logging
+        lh = addlistener(handles.s, 'DataAvailable', @(src, event) logAIData(src, event, logAIFile));
+        handles.s.NotifyWhenDataAvailableExceeds = round(handles.s.Rate*1);
+        disp('Added analog input channels and listener');
+    end
+
+    % Snap a quick dark frame
+    darkframe = getsnapshot(handles.vid);
+
+    if ~any(handles.masks(:))
+        res = getRes(handles.vid);
+        handles.masks = ones(res);
+        darkOffset = mean(darkframe(:));
+    else
+        darkOffset = applyMasks(handles.masks, darkframe);
+    end
+
+    nMasks = size(handles.masks, 3);
+    ref = zeros(1, nMasks); sig = zeros(1, nMasks);
+    i = 0;
+    j = 0;
+    rate = str2double(get(handles.rate_txt, 'String'));
+    lookback = handles.plotLookback;
+    framesback = lookback * rate / 2;
+    vid = handles.vid;
+    s = handles.s;
+
+    % Set up plotting
+    plot_fig = figure('CloseRequestFcn', @uncloseable);
+    ha = tightSubplot(nMasks, 1, 0.1, 0.05, 0.10, plot_fig);
+    yyaxes = zeros(nMasks, 2);
+    lyy = zeros(nMasks, 2);
+    t = -lookback:(2/rate):0;
+    ymax = 4;
+    ybuf = 1.1;
+    for k = 1:nMasks
+        [yyax, l1, l2] = plotyy(ha(k), 0, 0, 0, 0);
+        xlim(yyax(1), [-lookback 0]);
+        xlim(yyax(2), [-lookback 0]);
+        ylim(yyax(1), [0 ymax]);
+        ylim(yyax(2), [0 ymax]);
+        linkprop(yyax,{'Xlim'});
+        set(l1, 'Color', handles.calibColors(k,:));
+        set(l2, 'Color', handles.calibColors(k,:));
+        set(l1, 'LineWidth', 2);
+        set(l2, 'LineStyle', '--');
+        if verLessThan('matlab', '8.4')
+            set(l1, 'LineSmoothing', 'on');
+            set(l2, 'LineSmoothing', 'on');
+        end
+        set(yyax, {'ycolor'},{'k';'k'});
+        ylabel(yyax(1), 'Signal');
+        ylabel(yyax(2), 'Reference');
+        setappdata(gca, 'LegendColorbarManualSpace' ,1);
+        setappdata(gca, 'LegendColorbarReclaimSpace', 1);
+        yyaxes(k,:) = yyax;
+        lyy(k,:) = [l1 l2];
+    end
+
+    load_analog_output_data(handles, false);
+    start(vid);
+
+    s.startBackground();
+
+    handles.startTime = now();
+
+    % Stop if value is set to false, or if the user-specified AO
+    % finishes running
+    if handles.ao_waveform_path
+        disp('Waiting for user to end acquisition or AO waveform to finish...');
+    else
+        disp('Waiting for user to end acquisition...');
+    end
+    while get(hObject,'Value')
+
+        if ~ s.IsRunning
+            disp('AO waveform output finished.');
+            set(hObject,'Value', false); % Exit loop if AO output just finished
+            break
         end
 
-        % Snap a quick dark frame
-        darkframe = take_snapshot(handles.vid);
-
-        if ~any(handles.masks(:))
-            res = getRes(handles.vid);
-            handles.masks = ones(res);
-            darkOffset = mean(darkframe(:));
-        else
-            darkOffset = applyMasks(handles.masks, darkframe);
-        end
-
-        nMasks = size(handles.masks, 3);
-        ref = zeros(1, nMasks); sig = zeros(1, nMasks);
-        i = 0;
-        j = 0;
-        rate = str2double(get(handles.rate_txt, 'String'));
-        lookback = handles.plotLookback;
-        framesback = lookback * rate / 2;
-        vid = handles.vid;
-        s = handles.s;
-
-        % Set up plotting
-        plot_fig = figure('CloseRequestFcn', @uncloseable);
-        ha = tightSubplot(nMasks, 1, 0.1, 0.05, 0.10, plot_fig);
-        yyaxes = zeros(nMasks, 2);
-        lyy = zeros(nMasks, 2);
-        t = -lookback:(2/rate):0;
-        ymax = 4;
-        ybuf = 1.1;
-        for k = 1:nMasks
-            [yyax, l1, l2] = plotyy(ha(k), 0, 0, 0, 0);
-            xlim(yyax(1), [-lookback 0]);
-            xlim(yyax(2), [-lookback 0]);
-            ylim(yyax(1), [0 ymax]);
-            ylim(yyax(2), [0 ymax]);
-            linkprop(yyax,{'Xlim'});
-            set(l1, 'Color', handles.calibColors(k,:));
-            set(l2, 'Color', handles.calibColors(k,:));
-            set(l1, 'LineWidth', 2);
-            set(l2, 'LineStyle', '--');
-            if verLessThan('matlab', '8.4')
-                set(l1, 'LineSmoothing', 'on');
-                set(l2, 'LineSmoothing', 'on');
+        try
+            img = getdata(vid, 1, 'uint16');
+        catch e
+            % Most likely cause for getting here is the s.IsRunning bug:
+            %   without the workaround implemented above in init, the very
+            %   first acquisition, if AO is enabled, will fail to stop
+            %   (s.IsRunning is True indefinitely despite the waveform
+            %   having stopped). As a side effect, the synchronization
+            %   of the AO waveform and digital counter channels appears
+            %   to be consistently different.
+            if j > 0
+                disp('ERROR: AO and counters may not be synced. See s.IsRunning bug comments');
+                warning('See s.IsRunning bug comments'); beep;
             end
-            set(yyax, {'ycolor'},{'k';'k'});
-            ylabel(yyax(1), 'Signal');
-            ylabel(yyax(2), 'Reference');
-            setappdata(gca, 'LegendColorbarManualSpace' ,1);
-            setappdata(gca, 'LegendColorbarReclaimSpace', 1);
-            yyaxes(k,:) = yyax;
-            lyy(k,:) = [l1 l2];
+            set(hObject,'Value', false); % Exit loop if AO output just finished
+            break
         end
 
-        load_analog_output_data(handles, false);
-        start(vid);
+        i = i + 1;      % frame number
+        j = ceil(i/2);  % sig/ref pair number
 
-        s.startBackground();
+        avgs = applyMasks(handles.masks, img);
+        avgs = avgs - darkOffset;
 
-        handles.startTime = now();
-
-        % Stop if value is set to false, or if the user-specified AO
-        % finishes running
-        if handles.ao_waveform_path
-            disp('Waiting for user to end acquisition or AO waveform to finish...');
-        else
-            disp('Waiting for user to end acquisition...');
+        % Exponentially expanding matrix as per std::vector
+        if j > size(ref, 1) || j > size(sig, 1)
+            szr = size(ref); szs = size(sig);
+            ref = [ref; zeros(szr)]; sig = [sig; zeros(szs)];
         end
-        while get(hObject,'Value')
 
-            if ~ s.IsRunning
-                disp('AO waveform output finished.');
-                set(hObject,'Value', false); % Exit loop if AO output just finished
-                break
-            end
+        if mod(i, 2) == 1   % reference channel
+            ref(j,:) = avgs;
+            handles.callback(avgs, 'reference');
+        else                % signal channel
+            sig(j,:) = avgs;
+            handles.callback(avgs, 'signal');
+        end
+        % Plotting
+        jboth = 2 * floor(j / 2);
+        if jboth > 0 && mod(i, 2) == 0
+            tlen = jboth - max(1, j-framesback);
+            tnow = t(end-tlen:end);
+            for k = 1:nMasks
+                sigmin = min(sig(max(1, j-framesback):jboth,k));
+                sigmax = max(sig(max(1, j-framesback):jboth,k));
 
-            try
-                img = getdata(vid, 1, 'uint16');
-            catch e
-                % Most likely cause for getting here is the s.IsRunning bug:
-                %   without the workaround implemented above in init, the very
-                %   first acquisition, if AO is enabled, will fail to stop
-                %   (s.IsRunning is True indefinitely despite the waveform
-                %   having stopped). As a side effect, the synchronization
-                %   of the AO waveform and digital counter channels appears
-                %   to be consistently different.
-                if j > 0
-                    disp('ERROR: AO and counters may not be synced. See s.IsRunning bug comments');
-                    warning('See s.IsRunning bug comments'); beep;
+                refmin = min(ref(max(1, j-framesback):jboth,k));
+                refmax = max(ref(max(1, j-framesback):jboth,k));
+
+                % put axes on same scale, but allow zero to float
+                if sigmax - sigmin > refmax - refmin
+                    spread = sigmax - sigmin;
+                    mid = (refmax + refmin) / 2;
+                    refmax = mid + spread / 2;
+                    refmin = mid - spread / 2;
+                else
+                    spread = refmax - refmin;
+                    mid = (sigmax + sigmin) / 2;
+                    sigmax = mid + spread / 2;
+                    sigmin = mid - spread / 2;
                 end
-                set(hObject,'Value', false); % Exit loop if AO output just finished
-                break
-            end
 
-            i = i + 1;      % frame number
-            j = ceil(i/2);  % sig/ref pair number
-
-            avgs = applyMasks(handles.masks, img);
-            avgs = avgs - darkOffset;
-
-            % Exponentially expanding matrix as per std::vector
-            if j > size(ref, 1) || j > size(sig, 1)
-                szr = size(ref); szs = size(sig);
-                ref = [ref; zeros(szr)]; sig = [sig; zeros(szs)];
-            end
-
-            if mod(i, 2) == 1   % reference channel
-                ref(j,:) = avgs;
-                handles.callback(avgs, 'reference');
-            else                % signal channel
-                sig(j,:) = avgs;
-                handles.callback(avgs, 'signal');
-            end
-            % Plotting
-            jboth = 2 * floor(j / 2);
-            if jboth > 0 && mod(i, 2) == 0
-                tlen = jboth - max(1, j-framesback);
-                tnow = t(end-tlen:end);
-                for k = 1:nMasks
-                    sigmin = min(sig(max(1, j-framesback):jboth,k));
-                    sigmax = max(sig(max(1, j-framesback):jboth,k));
-
-                    refmin = min(ref(max(1, j-framesback):jboth,k));
-                    refmax = max(ref(max(1, j-framesback):jboth,k));
-
-                    % put axes on same scale, but allow zero to float
-                    if sigmax - sigmin > refmax - refmin
-                        spread = sigmax - sigmin;
-                        mid = (refmax + refmin) / 2;
-                        refmax = mid + spread / 2;
-                        refmin = mid - spread / 2;
-                    else
-                        spread = refmax - refmin;
-                        mid = (sigmax + sigmin) / 2;
-                        sigmax = mid + spread / 2;
-                        sigmin = mid - spread / 2;
-                    end
-
-                    % if max = min, don't try to update bounds
-                    if sigmax > sigmin
-                        ylim(yyaxes(k,1), [sigmin sigmax]);
-                    end
-                    if refmax > refmin
-                        ylim(yyaxes(k,2), [refmin refmax]);
-                    end
-
-                    set(lyy(k,1), 'XData', tnow, 'YData', sig(max(1, j-framesback):jboth,k));
-                    set(lyy(k,2), 'XData', tnow, 'YData', ref(max(1, j-framesback):jboth,k));
+                % if max = min, don't try to update bounds
+                if sigmax > sigmin
+                    ylim(yyaxes(k,1), [sigmin sigmax]);
                 end
-            end
+                if refmax > refmin
+                    ylim(yyaxes(k,2), [refmin refmax]);
+                end
 
-            % Check to make sure camera acquisition is keeping up.
-            elapsed_time = (now() - handles.startTime());
-            rate = str2double(get(handles.rate_txt,'String'));
+                set(lyy(k,1), 'XData', tnow, 'YData', sig(max(1, j-framesback):jboth,k));
+                set(lyy(k,2), 'XData', tnow, 'YData', ref(max(1, j-framesback):jboth,k));
+            end
+        end
+
+        % Check to make sure camera acquisition is keeping up.
+        elapsed_time = (now() - handles.startTime());
+        rate = str2double(get(handles.rate_txt,'String'));
 %             if abs(elapsed_time*24*3600 - (i)/rate) > 1 % if camera acquisition falls behind more than 1 s...
 %                 fraction_frames_acquired = i/(elapsed_time*24*3600*rate);
 %                 if j > 0
@@ -629,26 +561,24 @@ if state
 %                 set(hObject,'Value', false);
 %                 break
 %             end
-            set(handles.elapsed_txt, 'String', datestr(elapsed_time, 'HH:MM:SS'));
-        end
-        disp('...acquisition complete.');
+        set(handles.elapsed_txt, 'String', datestr(elapsed_time, 'HH:MM:SS'));
+    end
+    disp('...acquisition complete.');
 
-        % Stop acquisition
-        stop(vid);
-        s.stop();
-        if(ai_logging_is_enabled(handles))
-            delete(lh); % delete analog input listener
-        end
-        set(handles.elapsed_txt, 'String', datestr(0, 'HH:MM:SS'));
+    % Stop acquisition
+    stop(vid);
+    s.stop();
+    if(ai_logging_is_enabled(handles))
+        delete(lh); % delete analog input listener
+    end
+    set(handles.elapsed_txt, 'String', datestr(0, 'HH:MM:SS'));
 
-        % Save data
-        if j > 0
-            save_data(sig(1:j,:), ref(1:j,:), handles.labels, rate, handles.calibImg.cdata, saveFile, calibFile);
-        else
-            warning(['No frames captured or saved! Check camera trigger connection is ' handles.camCh.Terminal '. Then restart MATLAB.']); beep;
-        end
-
-    end % end settings are valid check
+    % Save data
+    if j > 0
+        save_data(sig(1:j,:), ref(1:j,:), handles.labels, rate, handles.calibImg.cdata, saveFile, calibFile);
+    else
+        warning(['No frames captured or saved!']); beep;
+    end
 
     % Make the old plots closeable
     set(plot_fig, 'CloseRequestFcn', @closeable);
@@ -668,90 +598,6 @@ if any(cdata(:))
     imwrite(cdata, calibFile, 'JPEG');
 end
 
-% --- Executes during object creation, after setting all properties.
-function camport_pop_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to camport_pop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on selection change in ref_pop.
-function ref_pop_Callback(hObject, eventdata, handles)
-% hObject    handle to ref_pop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns ref_pop contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from ref_pop
-f = handles.refCh.Frequency;
-i = handles.refCh.InitialDelay;
-d = handles.refCh.DutyCycle;
-handles.s.removeChannel(chIdx(handles.s, handles.refCh));
-
-handles.refCh = handles.s.addCounterOutputChannel(handles.dev.ID, getCurrentPopupString(hObject), 'PulseGeneration');
-handles.refCh.Frequency = f;
-handles.refCh.InitialDelay = i;
-handles.refCh.DutyCycle = d;
-disp(['Signal LED should be connected to ' handles.refCh.Terminal]);
-
-% Update handles structure
-guidata(hObject, handles);
-
-% --- Executes during object creation, after setting all properties.
-function ref_pop_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ref_pop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on selection change in sig_pop.
-function sig_pop_Callback(hObject, eventdata, handles)
-% hObject    handle to sig_pop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns sig_pop contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from sig_pop
-f = handles.sigCh.Frequency;
-i = handles.sigCh.InitialDelay;
-d = handles.sigCh.DutyCycle;
-handles.s.removeChannel(chIdx(handles.s, handles.sigCh));
-
-handles.sigCh = handles.s.addCounterOutputChannel(handles.dev.ID, getCurrentPopupString(hObject), 'PulseGeneration');
-handles.sigCh.Frequency = f;
-handles.sigCh.InitialDelay = i;
-handles.sigCh.DutyCycle = d;
-disp(['Signal LED should be connected to ' handles.sigCh.Terminal]);
-
-% Update handles structure
-guidata(hObject, handles);
-
-% --- Executes during object creation, after setting all properties.
-function sig_pop_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to sig_pop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
 function rate_txt_Callback(hObject, eventdata, handles)
 % hObject    handle to rate_txt (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -762,11 +608,6 @@ function rate_txt_Callback(hObject, eventdata, handles)
 rate = str2double(get(handles.rate_txt,'String'));
 fs = rate * handles.sample_rate_factor;
 set(handles.s, 'Rate', fs);
-set(handles.camCh, 'Frequency', rate);
-set(handles.refCh, 'Frequency', rate / 2);
-set(handles.refCh, 'InitialDelay', 1 / rate * 0.05);
-set(handles.sigCh, 'Frequency', rate / 2);
-set(handles.sigCh, 'InitialDelay', 1 / rate * 1.05);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -785,35 +626,9 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-% --- Executes on selection change in camport_pop.
-function camport_pop_Callback(hObject, eventdata, handles)
-% hObject    handle to camport_pop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns camport_pop contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from camport_pop
-f = handles.camCh.Frequency;
-i = handles.camCh.InitialDelay;
-d = handles.camCh.DutyCycle;
-handles.s.removeChannel(chIdx(handles.s, handles.camCh));
-
-handles.camCh = handles.s.addCounterOutputChannel(handles.dev.ID, getCurrentPopupString(hObject), 'PulseGeneration');
-handles.camCh.Frequency = f;
-handles.camCh.InitialDelay = i;
-handles.camCh.DutyCycle = d;
-disp(['Camera should be connected to ' handles.camCh.Terminal]);
-
-% Update handles structure
-guidata(hObject, handles);
-
 function update_camera_exposure_time(handles)
-   rate = str2double(get(handles.rate_txt, 'String'));
-   handles.src.ShutterMode = 'Manual';
-   shutter_props = propinfo(handles.src, 'Shutter');
-   shutter = min(shutter_props.ConstraintValue(2) * 0.9, 1000 * (1 / rate - handles.exposureGap));
-   handles.src.Shutter = shutter;
+rate = str2double(get(handles.rate_txt, 'String'));
+handles.src.AcquisitionFrameRate = rate;
 
 function cam_pop_Callback(hObject, eventdata, handles)
 % hObject    handle to cam_pop (see GCBO)
@@ -822,27 +637,27 @@ function cam_pop_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of cam_pop as text
 %        str2double(get(hObject,'String')) returns contents of cam_pop as a double
+
 % Setup camera
-% rate = str2double(get(handles.rate_txt, 'String'));
-% [adaptors, devices, formats, IDs] = getCameraHardware();
-% camDeviceN = get(hObject, 'Value');
-% vid = videoinput(adaptors{camDeviceN}, IDs(camDeviceN), formats{camDeviceN});
-% addpath('configs');
-% [vid, src] = flea3(vid);
-%
-% handles.vid = vid;
-% handles.src = src;
-%
-% % Choose default command line output for fipgui
-% handles.output = hObject;
-%
-% % Update handles structure
-% guidata(hObject, handles);
-% update_camera_exposure_time(handles);
-%
-% % Disable acquisition until calibration is run
-% set(handles.acquire_tgl, 'Enable', 'off');
-% set(handles.calibframe_lbl, 'Visible', 'on');
+rate = str2double(get(handles.rate_txt, 'String'));
+[adaptors, devices, formats, IDs] = getCameraHardware();
+camDeviceN = get(hObject, 'Value');
+vid = videoinput(adaptors{camDeviceN}, IDs(camDeviceN), formats{camDeviceN});
+src = getselectedsource(vid);
+
+handles.vid = vid;
+handles.src = src;
+
+% Choose default command line output for fipgui
+handles.output = hObject;
+
+% Update handles structure
+guidata(hObject, handles);
+update_camera_exposure_time(handles);
+
+% Disable acquisition until calibration is run
+set(handles.acquire_tgl, 'Enable', 'off');
+set(handles.calibframe_lbl, 'Visible', 'on');
 
 
 % --- Executes during object creation, after setting all properties.
@@ -974,9 +789,6 @@ function fipgui_CloseRequestFcn(hObject, eventdata, handles)
 
 % Save settings for next time
 grp = handles.settingsGroup;
-setpref(grp, 'camport_pop', get(handles.camport_pop, 'Value'));
-setpref(grp, 'ref_pop', get(handles.ref_pop, 'Value'));
-setpref(grp, 'sig_pop', get(handles.sig_pop, 'Value'));
 setpref(grp, 'rate_txt', get(handles.rate_txt, 'String'));
 setpref(grp, 'cam_pop', get(handles.cam_pop, 'Value'));
 setpref(grp, 'save_txt', get(handles.save_txt, 'String'));
