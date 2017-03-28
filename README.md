@@ -9,15 +9,17 @@ Kim, C., Yang, S., Pichamoorthy, N., Young, N., Kauvar, I., Jennings, J., Lerner
 Frame-projected independent-fiber photometry records the sum fluorescence from each of several optical fibers by imaging the fiber bundle onto a camera sensor and digitally cropping and summing the fluorescence from each fiber. Alternating excitation wavelengths for successive frames enables concurrent sampling of multiple spectral channels and/or optical stimulation.
 
 ## Hardware setup description
-The software synchronizes various hardware (light sources, camera acquisition, behavoral apparatuses) by using digital and analog output voltage waveforms and reads image frames from the camera. The measure camera signal from each fiber position can be processed, visualized and accessed in real-time, and saved to hard disk for later analysis. In addition, simultaneous analog input recording is enabled.
+The software synchronizes various hardware (camera acquisition, behavoral apparatuses) by using digital and analog output voltage waveforms and reads image frames from the camera. The measure camera signal from each fiber position can be processed, visualized and accessed in real-time, and saved to hard disk for later analysis. In addition, simultaneous analog input recording is enabled.
 
 Up to 4 analog output waveforms can be user-defined for controlling behavoral apparatuses and other hardware.
+
+However, in this configuration, the camera drives the LEDs. It is critical that the configuration process below is followed.
 
 The software is based on MATLAB's GUI interface and Image and Data Acquisition toolboxes.
 
 ## Hardware requirements
 Note: It may be possible to modify the software to work with other MATLAB-supported cameras and DAQ cards.
-1. Hamamatsu Orca Flash4.0 V2
+1. PointGrey Flea 3 (FL3-GE-03S1M) with latest firmware (v2.6.3.0)
 1. National Instruments DAQ Card (PCIe-6343-X and BNC-2090A/BNC-2110)
 1. PC to support the above hardware -- see [Hamamatsu PC Recommendations](http://www.hamamatsu.com/sp/sys/en/documents/PCRecommendationforOrca-Flash4.0_20150212.pdf)
 
@@ -31,6 +33,21 @@ Note: It may be possible to modify the software to work with other MATLAB-suppor
 1. Ensure the MATLAB toolboxes and camera adaptor are installed (see above).
 1. Run `fipgui.m`.
 1. In the GUI, select the counter channels to correspond to the physical DAQ connections.
+
+### Configuring the camera
+1. Open the FlyCapture2 software provided by PointGrey for operating the camera. Find you camera and click "Configure Selected".
+1. Under "Camera Settings" uncheck everything.
+1. Under "Custom Video Modes" set Mode to 1, Pixel Format to Mono 8, and Binning to 2 by 2. Packet Size should be 9000 if you followed the camera installation instructions provided by PointGrey. Packet Delay is computed automatically. For us it was 400.
+1. Under "Camera Registers" write the following registers:
+
+| Name                             | Register | Byte 1   | Byte 2   | Byte 3   | Byte 4   |
+|----------------------------------|----------|----------|----------|----------|----------|
+| GPIO Strobe Pattern Control      | 110c     | 10000000 | 00000000 | 00000010 | 00000001 |
+| GPIO Strobe Pattern Mask - Pin 2 | 1138     | 10000000 | 00000000 | 01000000 | 11111111 |
+| GPIO Strobe Pattern Mask - Pin 3 | 1148     | 10000000 | 00000000 | 10000000 | 11111111 |
+
+1. Under "Trigger / Strobe", under "Pin Direction Control", set GPIO 0 to In, and GPIO 1-3 to Out. Under "Strobe Control" enable GPIOs 1-3 and set all polarities to High. Delays and Durations should be 0.
+1. Under "Advanced Camera Settings" enable GigE packet resend.
 
 ## Real-time data access
 In the GUI, select a call-back function, e.g. `sample_scripts/sample_callback.m`.
