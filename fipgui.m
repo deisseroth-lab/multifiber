@@ -153,13 +153,13 @@ vid = videoinput('gige', 1, 'Mono8');
 vid.FramesPerTrigger = Inf;
 triggerconfig(vid, 'immediate');
 src = getselectedsource(vid);
-src.AcquisitionFrameRateEnabled = 'True';
-src.AcquisitionFrameRateAuto = 'Off';
+src.AcquisitionFrameRateEnabled = 'False';
+%src.AcquisitionFrameRateAuto = 'Off';
 src.Gain = 1;
 src.GammaEnabled = 'False';
 src.PacketSize = 7000;
 src.SharpnessEnabled = 'False';
-src.ExposureAuto = 'Once';
+src.ExposureAuto = 'Off';
 src.ExposureMode = 'Timed';
 
 handles.vid = vid;
@@ -628,7 +628,7 @@ end
 
 function update_camera_exposure_time(handles)
 rate = str2double(get(handles.rate_txt, 'String'));
-handles.src.AcquisitionFrameRate = rate;
+handles.src.ExposureTime = 1 / rate * 1000 * 1000;
 
 function cam_pop_Callback(hObject, eventdata, handles)
 % hObject    handle to cam_pop (see GCBO)
