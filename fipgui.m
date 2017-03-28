@@ -22,7 +22,7 @@ function varargout = fipgui(varargin)
 
 % Edit the above text to modify the response to help fipgui
 
-% Last Modified by GUIDE v2.5 07-Dec-2015 14:59:52
+% Last Modified by GUIDE v2.5 27-Mar-2017 18:43:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -155,7 +155,7 @@ triggerconfig(vid, 'immediate');
 src = getselectedsource(vid);
 src.AcquisitionFrameRateEnabled = 'False';
 %src.AcquisitionFrameRateAuto = 'Off';
-src.Gain = 1;
+%src.Gain = 1;
 src.GammaEnabled = 'False';
 src.PacketSize = 7000;
 src.SharpnessEnabled = 'False';
@@ -219,18 +219,13 @@ function varargout = fipgui_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 
-% --- Executes on button press in snap_btn.
-function snap_btn_Callback(hObject, eventdata, handles)
-% hObject    handle to snap_btn (see GCBO)
+% --- Executes on button press in preview_btn.
+function preview_btn_Callback(hObject, eventdata, handles)
+% hObject    handle to preview_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-snapframe = getsnapshot(handles.vid);
-
-% Display the frame
-figure();
-imagesc(snapframe);
-colorbar();
+preview(handles.vid);
 
 % --- Executes on button press in calibframe_btn.
 function calibframe_btn_Callback(hObject, eventdata, handles)
@@ -367,7 +362,7 @@ if state
     confControls = [
         handles.rate_txt
         handles.cam_pop
-        handles.snap_btn
+        handles.preview_btn
         handles.calibframe_btn
         handles.save_txt
         handles.callback_txt
