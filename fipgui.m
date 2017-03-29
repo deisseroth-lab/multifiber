@@ -324,7 +324,7 @@ n = 0;
 while exist(fullfile(handles.savepath, [basename sprintf('_%03d', n) ext]), 'file') == 2
     n = n + 1;
 end
-saveFile = fullfile(handles.savepath, [basename sprintf('_%03d', n) ext]);
+saveFile = fullfile(handles.savepath, [basename sprintf('_%03d', n)]);
 calibFile = fullfile(handles.savepath, [basename sprintf('_%03d_calibration', n) '.jpg']);
 logAIFile = fullfile(handles.savepath, [basename sprintf('_%03d_logAI', n) '.csv']);
 if exist(logAIFile,'file')==2
@@ -442,55 +442,10 @@ if state
         
         % Snap a quick dark frame
         darkframe = getsnapshot(handles.vid);
-
-        if ~any(handles.masks(:))
-            handles.masks = ones(handles.vid.VideoResolution);
-            darkOffset = mean(darkframe(:));
-        else
-            darkOffset = applyMasks(handles.masks, darkframe);
-        end
         
-        nMasks = size(handles.masks, 3);
-        ref = zeros(1, nMasks); sig = zeros(1, nMasks);
-        i = 0;
-        j = 0;
         rate = str2double(get(handles.rate_txt, 'String'));
-        lookback = handles.plotLookback;
-        framesback = lookback * rate / 2;
         vid = handles.vid;
         s = handles.s;
-
-        % Set up plotting
-        plot_fig = figure('CloseRequestFcn', @uncloseable);
-        ha = tightSubplot(nMasks, 1, 0.1, 0.05, 0.10, plot_fig);
-        yyaxes = zeros(nMasks, 2);
-        lyy = zeros(nMasks, 2);
-        t = -lookback:(2/rate):0;
-        ymax = 4;
-        ybuf = 1.1;
-        for k = 1:nMasks
-            [yyax, l1, l2] = plotyy(ha(k), 0, 0, 0, 0);
-            xlim(yyax(1), [-lookback 0]);
-            xlim(yyax(2), [-lookback 0]);
-            ylim(yyax(1), [0 ymax]);
-            ylim(yyax(2), [0 ymax]);
-            linkprop(yyax,{'Xlim'});
-            set(l1, 'Color', handles.calibColors(k,:));
-            set(l2, 'Color', handles.calibColors(k,:));
-            set(l1, 'LineWidth', 2);
-            set(l2, 'LineStyle', '--');
-            if verLessThan('matlab', '8.4')
-                set(l1, 'LineSmoothing', 'on');
-                set(l2, 'LineSmoothing', 'on');
-            end
-            set(yyax, {'ycolor'},{'k';'k'});
-            ylabel(yyax(1), 'Signal');
-            ylabel(yyax(2), 'Reference');
-            setappdata(gca, 'LegendColorbarManualSpace' ,1);
-            setappdata(gca, 'LegendColorbarReclaimSpace', 1);
-            yyaxes(k,:) = yyax;
-            lyy(k,:) = [l1 l2];
-        end
 
         triggerconfig(vid, 'hardware', 'RisingEdge', 'EdgeTrigger');
         load_analog_output_data(handles, false);
@@ -536,63 +491,17 @@ if state
             i = i + 1;      % frame number
             j = ceil(i/2);  % sig/ref pair number                        
             
-            avgs = applyMasks(handles.masks, img);
-            avgs = avgs - darkOffset;
-
-            % Exponentially expanding matrix as per std::vector
-            if j > size(ref, 1) || j > size(sig, 1)
-                szr = size(ref); szs = size(sig);
-                ref = [ref; zeros(szr)]; sig = [sig; zeros(szs)];
+            subtracted = uint16(max(0, img - darkframe));
+            if mod(i, 2) == 1
+                frame_type = '_ref_';
+            else
+                frame_type = '_sig_';
             end
-
-            if mod(i, 2) == 1   % reference channel
-                ref(j,:) = avgs;
-                handles.callback(avgs, 'reference');
-            else                % signal channel
-                sig(j,:) = avgs;
-                handles.callback(avgs, 'signal');
-            end
-            % Plotting
-            jboth = 2 * floor(j / 2);
-            if jboth > 0 && mod(i, 2) == 0
-                tlen = jboth - max(1, j-framesback);
-                tnow = t(end-tlen:end);
-                for k = 1:nMasks
-                    sigmin = min(sig(max(1, j-framesback):jboth,k));
-                    sigmax = max(sig(max(1, j-framesback):jboth,k));
-                    
-                    refmin = min(ref(max(1, j-framesback):jboth,k));
-                    refmax = max(ref(max(1, j-framesback):jboth,k));
-                    
-                    % put axes on same scale, but allow zero to float
-                    if sigmax - sigmin > refmax - refmin
-                        spread = sigmax - sigmin;
-                        mid = (refmax + refmin) / 2;
-                        refmax = mid + spread / 2;
-                        refmin = mid - spread / 2;
-                    else
-                        spread = refmax - refmin;
-                        mid = (sigmax + sigmin) / 2;
-                        sigmax = mid + spread / 2;
-                        sigmin = mid - spread / 2;
-                    end
-                    
-                    % if max = min, don't try to update bounds
-                    if sigmax > sigmin
-                        ylim(yyaxes(k,1), [sigmin sigmax]);
-                    end
-                    if refmax > refmin
-                        ylim(yyaxes(k,2), [refmin refmax]);
-                    end
-
-                    set(lyy(k,1), 'XData', tnow, 'YData', sig(max(1, j-framesback):jboth,k));
-                    set(lyy(k,2), 'XData', tnow, 'YData', ref(max(1, j-framesback):jboth,k));
-                end
-            end
+            frame_name = [saveFile filesep frame_type sprintf('%06d', j) '.tif'];
+            imwrite(subtracted, frame_name, 'tiff');
                        
             % Check to make sure camera acquisition is keeping up.
-            elapsed_time = (now() - handles.startTime());
-            rate = str2double(get(handles.rate_txt,'String'));            
+            elapsed_time = (now() - handles.startTime());           
             if abs(elapsed_time*24*3600 - (i)/rate) > 1 % if camera acquisition falls behind more than 1 s...
                 fraction_frames_acquired = i/(elapsed_time*24*3600*rate);                
                 if j > 0
@@ -620,15 +529,12 @@ if state
 
         % Save data
         if j > 0
-            save_data(sig(1:j,:), ref(1:j,:), handles.labels, rate, handles.calibImg.cdata, saveFile, calibFile);
+            save_data(zeros(1), zeros(1), handles.labels, rate, handles.calibImg.cdata, [saveFile '.mat'], calibFile);
         else            
             warning(['No frames captured or saved! Check camera trigger connection is ' handles.camCh.Terminal '. Then restart MATLAB.']); beep;
         end
         
     end % end settings are valid check
-    
-    % Make the old plots closeable
-    set(plot_fig, 'CloseRequestFcn', @closeable);
     
     % Re-enable all controls
     for control = confControls
