@@ -454,6 +454,9 @@ if state
         s.startBackground();
         
         handles.startTime = now();
+        i = 0;
+        j = 0;
+        mkdir(saveFile);
 
         % Stop if value is set to false, or if the user-specified AO
         % finishes running
@@ -493,16 +496,16 @@ if state
             
             subtracted = uint16(max(0, img - darkframe));
             if mod(i, 2) == 1
-                frame_type = '_ref_';
+                frame_type = 'ref_';
             else
-                frame_type = '_sig_';
+                frame_type = 'sig_';
             end
             frame_name = [saveFile filesep frame_type sprintf('%06d', j) '.tif'];
             imwrite(subtracted, frame_name, 'tiff');
                        
             % Check to make sure camera acquisition is keeping up.
             elapsed_time = (now() - handles.startTime());           
-            if abs(elapsed_time*24*3600 - (i)/rate) > 1 % if camera acquisition falls behind more than 1 s...
+            if 0 && abs(elapsed_time*24*3600 - (i)/rate) > 1 % if camera acquisition falls behind more than 1 s...
                 fraction_frames_acquired = i/(elapsed_time*24*3600*rate);                
                 if j > 0
                     disp(['fraction of frames acquired: ' num2str(fraction_frames_acquired)]);
