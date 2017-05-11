@@ -389,8 +389,9 @@ if state
         disp('Added analog input channels and listener');
     end
 
-    % Snap a quick dark frame
-    darkframe = getsnapshot(handles.vid);
+    % No dark frame is used here because frames are always being acquired
+    %darkframe = getsnapshot(handles.vid);
+    darkframe = zeros(getRes(handles.vid));
 
     if ~any(handles.masks(:))
         res = getRes(handles.vid);
