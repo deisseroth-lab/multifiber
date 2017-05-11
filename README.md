@@ -36,18 +36,18 @@ Note: It may be possible to modify the software to work with other MATLAB-suppor
 
 ### Configuring the camera
 1. Open the FlyCapture2 software provided by PointGrey for operating the camera. Find you camera and click "Configure Selected".
-1. Under "Camera Settings" uncheck everything.
-1. Under "Custom Video Modes" set Mode to 1, Pixel Format to Mono 8, and Binning to 2 by 2. Packet Size should be 9000 if you followed the camera installation instructions provided by PointGrey. Packet Delay is computed automatically. For us it was 400.
-1. Under "Camera Registers" write the following registers:
+2. Under "Camera Settings" uncheck everything.
+3. Under "Custom Video Modes" set Mode to 1, Pixel Format to Mono 8, and Binning to 2 by 2. Packet Size should be 9000 if you followed the camera installation instructions provided by PointGrey. Packet Delay is computed automatically. For us it was 400.
+4. Under "Camera Registers" write the following registers:
 
-| Name                             | Register | Byte 1   | Byte 2   | Byte 3   | Byte 4   |
-|----------------------------------|----------|----------|----------|----------|----------|
-| GPIO Strobe Pattern Control      | 110c     | 10000000 | 00000000 | 00000010 | 00000001 |
-| GPIO Strobe Pattern Mask - Pin 2 | 1138     | 10000000 | 00000000 | 01000000 | 11111111 |
-| GPIO Strobe Pattern Mask - Pin 3 | 1148     | 10000000 | 00000000 | 10000000 | 11111111 |
+        | Name                             | Register | Byte 1   | Byte 2   | Byte 3   | Byte 4   |
+        |----------------------------------|----------|----------|----------|----------|----------|
+        | GPIO Strobe Pattern Control      | 110c     | 10000000 | 00000000 | 00000010 | 00000001 |
+        | GPIO Strobe Pattern Mask - Pin 2 | 1138     | 10000000 | 00000000 | 01000000 | 11111111 |
+        | GPIO Strobe Pattern Mask - Pin 3 | 1148     | 10000000 | 00000000 | 10000000 | 11111111 |
 
-1. Under "Trigger / Strobe", under "Pin Direction Control", set GPIO 0 to In, and GPIO 1-3 to Out. Under "Strobe Control" enable GPIOs 1-3 and set all polarities to High. Delays and Durations should be 0.
-1. Under "Advanced Camera Settings" enable GigE packet resend.
+5. Under "Trigger / Strobe", under "Pin Direction Control", set GPIO 0 to In, and GPIO 1-3 to Out. Under "Strobe Control" enable GPIOs 1-3 and set all polarities to High. Delays and Durations should be 0.
+6. Under "Advanced Camera Settings" enable GigE packet resend.
 
 ## Real-time data access
 In the GUI, select a call-back function, e.g. `sample_scripts/sample_callback.m`.
