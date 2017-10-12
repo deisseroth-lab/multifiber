@@ -59,6 +59,8 @@ Implementation detail: the digital counter waveforms and analog output waveforms
 ## Analog input recording
 Ensure the desired physical connections are made to the DAQ analog input channels. Then, in the GUI, enable the checkbox for analog input recording. A `.csv` file will be saved along with the other acquisition data. Visualize the recorded data by using the GUI button or `plotLogFile.m`.
 
+N.B. In this version, analog inputs 0-5 are automatically logged. This is to enable AI6 and beyond to be read by user-defined handlers.
+
 ## A note about maximum acquisition rate
 The maximum acquisition rate may depend on several factors:
 1. The camera readout time. For the Orca's bidirectional center-outwards rolling shutter, the camera readout time is set by the minimum of the distance from the farthest row from the center to the center of the image sensor, and the distance between the two most-distant rows.

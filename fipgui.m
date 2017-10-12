@@ -152,7 +152,7 @@ catch e
 end
 
 % Enable analog input logging
-ch = addAnalogInputChannel(s,handles.dev.ID,[0:7], 'Voltage');
+ch = addAnalogInputChannel(s,handles.dev.ID,[0:5], 'Voltage');
 lh = addlistener(s, 'DataAvailable', @(src, event) 0); % add a dummy listener
 disp(['(optional for logging) Analog inputs should be connected to ai0 - ai7']);
 
